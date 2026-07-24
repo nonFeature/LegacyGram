@@ -16,7 +16,8 @@ pd - priority dir
 
 # CONFIGURATION
 SCRIPT_DIR = Path(__file__).parent.resolve()
-DIST_DIR = SCRIPT_DIR.parent.parent
+DIST_DIR = SCRIPT_DIR / "dist"
+ROOT_DIST_DIR = SCRIPT_DIR.parent.parent
 OUTPUT_FILENAME = "LiteGram.plugin"
 SRC_DIR = SCRIPT_DIR / "LiteGram"
 HEADER_FILE = SRC_DIR / "header.py"
@@ -437,6 +438,12 @@ def build():
 
     newline = "\r\n" if args.crlf else "\n"
     out_path.write_text(full_code, encoding="utf-8", newline=newline)
+
+    try:
+        ROOT_DIST_DIR.mkdir(exist_ok=True)
+        (ROOT_DIST_DIR / OUTPUT_FILENAME).write_text(full_code, encoding="utf-8", newline=newline)
+    except Exception:
+        pass
 
     # Calculate actual sizes
     orig_bytes = (HEADER_WATERMARK + "\n" + COPYRIGHT_STRING + "\n" + combined_code + "\n\n" + FOOTER_WATERMARK).replace("\n", newline).encode("utf-8")
