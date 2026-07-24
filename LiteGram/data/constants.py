@@ -28,6 +28,7 @@ class Keys:
     hide_stories = "hideStories"  # ETG
     hide_action_bar_status = "hideActionBarStatus"  # ETG
     hide_greeting_button = "hideGreetingButton"
+    hide_group_stickers = "hideGroupStickers"
 
     # --- Profile Buttons ---
     hide_profile_actions_stories_button = "hideProfileActionsStoriesButton"
@@ -46,7 +47,6 @@ class Keys:
     hide_profile_music = "hideProfileMusic"
     hide_profile_business = "hideProfileBusiness"
 
-    hide_premium_emoji = "hidePremiumEmoji"
     hide_premium_emoji_packs = "hidePremiumEmojiPacks"
     hide_premium_search = "hidePremiumSearch"
     hide_premium_suggestions = "hidePremiumSuggestions"
@@ -57,7 +57,6 @@ class Keys:
         (hide_premium_suggestions, "hide_premium_suggestions"),
     )
 
-    hide_premium_stickers = "hidePremiumStickers"
     hide_premium_stickers_recent = "hidePremiumStickersRecent"
     hide_premium_stickers_search = "hidePremiumStickersSearch"
     hide_premium_stickers_grid = "hidePremiumStickersGrid"
@@ -84,15 +83,13 @@ class Keys:
     hide_action_bar_send_gift = "hideActionBarSendGift"
     hide_action_bar_boost_group = "hideActionBarBoostGroup"
     hide_action_bar_add_shortcut = "hideActionBarAddShortcut"
+    hide_action_bar_report = "hideActionBarReport"
 
     # --- Gifts ---
     hide_bottom_gift_button = "hideBottomGiftButton"
     hide_gift_cards = "hideGiftCards"
-    hide_gift_dialogs_send = "hideGiftDialogsSend"
-    hide_gift_dialogs_view = "hideGiftDialogsView"
     hide_giveaway_cards = "hideGiveawayCards"
     hide_collectible_status = "hideCollectibleStatus"
-    force_disable_particles = "forceDisableParticles"
     hide_stars_rating = "hideStarsRating"
     hide_star_reaction = "hideStarReaction"
 

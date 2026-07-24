@@ -16,7 +16,7 @@ lazilyAddSubItem(id, ...) -> stores in lazyList -> later layoutLazyItems() creat
 So we just View.GONE, instead setResult(None)
 
 We also hook setSubItemShown to remove some elements, that sets visibility to true
-And hook for topics (boost group button)
+And hook for topics (boost group button, report button)
 """
 
 # from ProfileActivity class
@@ -41,44 +41,64 @@ _ITEM_KEY_MAP = {
     BOOST_GROUP: Keys.hide_action_bar_boost_group,
 }
 
+R_drawable = find_class("org.telegram.messenger.R$drawable")
+MSG_REPORT_ID = getattr(R_drawable, "msg_report", -1) if R_drawable else -1
+
+
+def _is_report(args) -> bool:
+    if not args:
+        return False
+    item_id = args[0]
+    if len(args) > 1 and MSG_REPORT_ID > 0 and args[1] == MSG_REPORT_ID:
+        return True
+    if len(args) > 2 and args[2] is not None:
+        txt = str(args[2]).lower()
+        if "report" in txt or "пожалова" in txt:
+            return True
+    if item_id == 21:
+        return True
+    return False
+
+
+def _should_hide_menu_item(plugin, args) -> bool:
+    if not args:
+        return False
+    item_id = args[0]
+
+    if _is_report(args):
+        return bool(plugin.get_setting(Keys.hide_action_bar_report, False))
+
+    if item_id in _ITEM_KEY_MAP:
+        return bool(plugin.get_setting(_ITEM_KEY_MAP[item_id], False))
+
+    return False
+
 
 class ActionBarMenuItemAddSubItemHook(BaseHook):
     def after_hooked_method(self, param):
         result = param.getResult()
-        if result is None:
+        if result is None or not param.args:
             return
-        try:
-            item_id = param.args[0]
-        except IndexError:
-            return
-        if item_id not in _ITEM_KEY_MAP or not self.plugin.get_setting(_ITEM_KEY_MAP[item_id], False):
-            return
-        result.setVisibility(View.GONE)
+        if _should_hide_menu_item(self.plugin, param.args):
+            result.setVisibility(View.GONE)
 
 
 class ActionBarMenuItemLazilyAddSubItemHook(BaseHook):
     def after_hooked_method(self, param):
         result = param.getResult()
-        if result is None:
+        if result is None or not param.args:
             return
-        try:
-            item_id = param.args[0]
-        except IndexError:
-            return
-        if item_id not in _ITEM_KEY_MAP or not self.plugin.get_setting(_ITEM_KEY_MAP[item_id], False):
-            return
-        result.setVisibility(View.GONE)
+        if _should_hide_menu_item(self.plugin, param.args):
+            result.setVisibility(View.GONE)
 
 
 # calls showSubItem(id); if show is true
 # public void setSubItemShown(int id, boolean show)
 class ActionBarMenuItemSetSubItemShownHook(BaseHook):
     def before_hooked_method(self, param):
-        try:
-            item_id = param.args[0]
-        except IndexError:
+        if not param.args:
             return
-        if item_id in _ITEM_KEY_MAP and self.plugin.get_setting(_ITEM_KEY_MAP[item_id], False):
+        if _should_hide_menu_item(self.plugin, param.args):
             try:
                 param.args[1] = False  # boolean show
             except IndexError:
@@ -87,14 +107,15 @@ class ActionBarMenuItemSetSubItemShownHook(BaseHook):
 
 class TopicsFragmentUpdateChatInfoHook(BaseHook):
     def after_hooked_method(self, param):
-        if not self.is_enabled():
-            return
-
         instance = param.thisObject
-        boost_submenu_field = get_private_field(instance, "boostGroupSubmenu")
-
-        if boost_submenu_field is not None:
-            boost_submenu_field.setVisibility(8)
+        if self.plugin.get_setting(Keys.hide_action_bar_boost_group, False):
+            boost_submenu_field = get_private_field(instance, "boostGroupSubmenu")
+            if boost_submenu_field is not None:
+                boost_submenu_field.setVisibility(8)
+        if self.plugin.get_setting(Keys.hide_action_bar_report, False):
+            report_submenu_field = get_private_field(instance, "reportSubmenu")
+            if report_submenu_field is not None:
+                report_submenu_field.setVisibility(8)
 
 
 def register_action_bar(plugin) -> None:
@@ -115,6 +136,6 @@ def register_action_bar(plugin) -> None:
             pass
     if TopicsFragment:
         try:
-            plugin.hook_all_methods(TopicsFragment, "updateChatInfo", TopicsFragmentUpdateChatInfoHook(plugin, Keys.hide_action_bar_boost_group))
+            plugin.hook_all_methods(TopicsFragment, "updateChatInfo", TopicsFragmentUpdateChatInfoHook(plugin))
         except Exception:
             pass

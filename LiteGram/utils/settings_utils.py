@@ -45,14 +45,7 @@ def toggle_emoji_search_options(_: View | None = None) -> None:
 
 
 def toggle_premium_emoji_options(_: View | None = None) -> None:
-    toggle_group_options(
-        [
-            Keys.hide_premium_emoji_packs,
-            Keys.hide_premium_search,
-            Keys.hide_premium_suggestions,
-        ],
-        default_val=True,
-    )
+    toggle_group_options([key for key, _ in Keys.PREMIUM_EMOJI_ROWS], default_val=True)
 
 
 def toggle_premium_stickers_options(_: View | None = None) -> None:

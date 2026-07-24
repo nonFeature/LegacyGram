@@ -98,6 +98,7 @@ class LiteGramPlugin(BasePlugin):
             or self.get_setting(Keys.hide_premium_stickers_recent, False)
             or self.get_setting(Keys.hide_premium_stickers_search, False)
             or self.get_setting(Keys.hide_premium_stickers_grid, False)
+            or self.get_setting(Keys.hide_group_stickers, False)
         ):
             filter_response(request_name, response)
         if self.get_setting(Keys.hide_gifts_tab, False):

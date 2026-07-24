@@ -20,6 +20,12 @@ ChatActivityEnterView = find_class("org.telegram.ui.Components.ChatActivityEnter
 MediaDataController = find_class("org.telegram.messenger.MediaDataController")
 EmojiSearchAdapterRunnable = find_class("org.telegram.ui.Components.EmojiView$EmojiSearchAdapter$5")
 EmojiTabsStrip = find_class("org.telegram.ui.Components.EmojiTabsStrip")
+SelectAnimatedEmojiDialog = find_class("org.telegram.ui.SelectAnimatedEmojiDialog")
+CustomEmojiReactionsWindow = find_class("org.telegram.ui.Components.Reactions.CustomEmojiReactionsWindow")
+ReactionsContainerLayout = find_class("org.telegram.ui.Components.ReactionsContainerLayout")
+StickerCategoriesListView = find_class("org.telegram.ui.Components.StickerCategoriesListView")
+SearchBox = find_class("org.telegram.ui.SelectAnimatedEmojiDialog$SearchBox")
+Thread = find_class("java.lang.Thread")
 
 # ============================================================
 # Module state
@@ -325,7 +331,6 @@ HANDLERS = {
         _filter_list(r.sets, drop_non_stock=True) if p.get_setting(Keys.hide_premium_emoji_packs, False) else None
     ),
     "TL_messages_searchStickers": lambda r, p: _filter_list(r.stickers, is_sticker=True) if p.get_setting(Keys.hide_premium_stickers_search, False) else None,
-    "TL_messages_getRecentReactions": lambda r, p: _filter_reactions_list(r.reactions) if p.get_setting(Keys.hide_premium_emoji_packs, False) else None,
     "TL_messages_getRecentStickers": lambda r, p: (
         _filter_list(r.stickers, is_sticker=True) if p.get_setting(Keys.hide_premium_stickers_recent, False) else None
     ),
@@ -596,31 +601,14 @@ class SetAllowAnimatedEmojiFalseHook(BaseHook):
             pass
 
 
-class FilterReactionsListHook(BaseHook):
-    def __init__(self, plugin):
-        super().__init__(plugin, Keys.hide_premium_emoji_packs)
-
-    def after_hooked_method(self, param):
-        if not self.is_enabled():
-            return
-        reactions = param.getResult()
-        if not reactions:
-            return
-        i = reactions.size() - 1
-        while i >= 0:
-            if getattr(reactions.get(i), "document_id", 0) != 0:
-                reactions.remove(i)
-            i -= 1
-
-
 class ClearStickerSetsType5Hook(BaseHook):
     def __init__(self, plugin):
         super().__init__(plugin, Keys.hide_premium_emoji_packs)
 
     def after_hooked_method(self, param):
-        if not self.is_enabled():
-            return
         if not param.args or param.args[0] != 5:
+            return
+        if not self.is_enabled():
             return
         if ArrayList:
             param.setResult(ArrayList())
@@ -637,6 +625,16 @@ class ClearFeaturedEmojiSetsHook(BaseHook):
             param.setResult(ArrayList())
 
 
+class HideGroupStickerSetHook(BaseHook):
+    def __init__(self, plugin):
+        super().__init__(plugin, Keys.hide_group_stickers)
+
+    def before_hooked_method(self, param):
+        if not self.is_enabled():
+            return
+        param.setResult(None)
+
+
 class EmojiTabsStripConstructorHook(BaseHook):
     def __init__(self, plugin):
         super().__init__(plugin, Keys.hide_premium_emoji_packs)
@@ -644,8 +642,12 @@ class EmojiTabsStripConstructorHook(BaseHook):
     def before_hooked_method(self, param):
         if not self.is_enabled():
             return
-        if param.args and len(param.args) >= 6:
+        if not param.args or len(param.args) < 6:
+            return
+        try:
             param.args[5] = False
+        except Exception:
+            pass
 
 
 # ============================================================
@@ -750,23 +752,15 @@ def register_premium_emoji(plugin):
 
     if MediaDataController:
         try:
-            plugin.hook_all_methods(MediaDataController, "getRecentReactions", FilterReactionsListHook(plugin))
-        except Exception:
-            pass
-        try:
-            plugin.hook_all_methods(MediaDataController, "getTopReactions", FilterReactionsListHook(plugin))
-        except Exception:
-            pass
-        try:
-            plugin.hook_all_methods(MediaDataController, "getSavedReactions", FilterReactionsListHook(plugin))
-        except Exception:
-            pass
-        try:
             plugin.hook_all_methods(MediaDataController, "getStickerSets", ClearStickerSetsType5Hook(plugin))
         except Exception:
             pass
         try:
             plugin.hook_all_methods(MediaDataController, "getFeaturedEmojiSets", ClearFeaturedEmojiSetsHook(plugin))
+        except Exception:
+            pass
+        try:
+            plugin.hook_all_methods(MediaDataController, "getGroupStickerSetById", HideGroupStickerSetHook(plugin))
         except Exception:
             pass
         classes.append("MediaDataController")

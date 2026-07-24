@@ -66,16 +66,15 @@ STRINGS = {
         "hide_action_bar_send_gift": "Скрыть \"Отправить подарок\"",
         "hide_action_bar_boost_group": "Скрыть \"Голоса\"",
         "hide_action_bar_add_shortcut": "Скрыть \"Создать ярлык\"",
+        "hide_action_bar_report": "Скрыть \"Пожаловаться\"",
 
         # --- Gifts Related ---
-        "gifts": "Подарки",
+        "gifts": "Элементы чата",
         "hide_bottom_gift_button": "Скрыть кнопку подарка в поле ввода",
         "hide_gift_cards": "Скрыть карточки подарков в чате",
         "hide_giveaway_cards": "Скрыть розыгрыши в чатах",
         "hide_collectible_status": "Скрыть collectible-статус",
         "hide_collectible_status_sub": "Если в статусе стоит подарок",
-        "force_disable_particles": "Отключить частицы у статуса",
-        "force_disable_particles_sub": "Принудительно отключает частицы у статуса в боковом меню",
 
         "hide_stars_rating": "Скрыть рейтинг звёзд",
         "hide_star_reaction": "Скрыть реакции за звёзды",
@@ -96,6 +95,7 @@ STRINGS = {
         "hide_premium_stickers_recent": "Скрыть из недавних",
         "hide_premium_stickers_search": "Скрыть в поиске",
         "hide_premium_stickers_grid": "Скрыть на панели выбора",
+        "hide_group_stickers": "Скрыть стикерпак группы",
 
         # --- Premium Features Hiding ---
         "hide_premium_features": "Скрыть премиум-функции",
@@ -182,16 +182,15 @@ STRINGS = {
         "hide_action_bar_send_gift": "Hide \"Send Gift\"",
         "hide_action_bar_boost_group": "Hide \"Boost Group\"",
         "hide_action_bar_add_shortcut": "Hide \"Add to Home Screen\"",
+        "hide_action_bar_report": "Hide \"Report\"",
 
         # --- Gifts Related ---
-        "gifts": "Gifts",
+        "gifts": "Chat Elements",
         "hide_bottom_gift_button": "Hide Gift Button from Input Field",
         "hide_gift_cards": "Hide Gift Cards in Chat",
         "hide_giveaway_cards": "Hide Giveaways",
         "hide_collectible_status": "Hide Collectible Status",
         "hide_collectible_status_sub": "If there is a gift in the status",
-        "force_disable_particles": "Disable Status Particles",
-        "force_disable_particles_sub": "Forces particle effects off in status menus",
 
         "hide_stars_rating": "Hide Stars Rating",
         "hide_star_reaction": "Hide Star Reaction",
@@ -211,6 +210,7 @@ STRINGS = {
         "hide_premium_stickers_recent": "Hide from Recents",
         "hide_premium_stickers_search": "Hide in Search",
         "hide_premium_stickers_grid": "Hide in Picker Grid",
+        "hide_group_stickers": "Hide Group Sticker Pack",
 
         # --- Premium Features Hiding ---
         "hide_premium_features": "Hide premium features",

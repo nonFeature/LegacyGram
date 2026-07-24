@@ -18,7 +18,8 @@ also we hook setChatInfo and setUserInfo which move you to stories tab sometimes
 ... .setInitialTabId(... ? TAB_ARCHIVED_STORIES : TAB_STORIES);
 for weird StoriesCollections logic we just set visibility to false (I'm a little lazy to check they logic, it's working fine)
 
-Also code here is weird too
+Also we hook includeStories, isStoriesView, and isArchivedOnlyStoriesView to return False when hide_stories_tab is active,
+which prevents story and archived story tabs from being generated in self profile (myProfile) and normal profiles.
 """
 
 TL_profileTabGifts = find_class("org.telegram.tgnet.TLRPC$TL_profileTabGifts")
@@ -61,7 +62,7 @@ class SharedMediaLayoutHook(BaseHook):
     def after_hooked_method(self, param):
         stories = bool(self.plugin.get_setting(Keys.hide_stories_tab, False))
 
-        if self.is_constructor or not stories:
+        if not stories:
             return
 
         try:
@@ -79,6 +80,13 @@ class SharedMediaLayoutSetInfoHook(BaseHook):
         except IndexError:
             return
         remove_stories(info_obj)
+
+
+class ReturnFalseHook(BaseHook):
+    def before_hooked_method(self, param):
+        if not self.is_enabled():
+            return
+        param.setResult(False)
 
 
 # not the best how you can do it, but still fine
@@ -115,11 +123,11 @@ def remove_stories(obj: Any):
 def rebuild_tabs_without_stories(tab_strip) -> None:
     if tab_strip is None:
         return
-    if not tab_strip.hasTab(8) and not tab_strip.hasTab(9):
+    if not tab_strip.hasTab(8) and not tab_strip.hasTab(9) and not tab_strip.hasTab(13):
         return
 
     current_tab_id = tab_strip.getCurrentTabId()
-    removed_tab_ids = {8, 9}
+    removed_tab_ids = {8, 9, 13}
     tab_ids = list(tab_strip.getTabIds())
     cached_tabs = tab_strip.removeTabs()
     first_available_tab = None
@@ -168,6 +176,14 @@ def register_media_layout(plugin) -> None:
             info_hook = SharedMediaLayoutSetInfoHook(plugin, Keys.hide_stories_tab)
             plugin.hook_all_methods(SharedMediaLayout, "setChatInfo", info_hook)
             plugin.hook_all_methods(SharedMediaLayout, "setUserInfo", info_hook)
+        except Exception:
+            pass
+
+        try:
+            return_false_hook = ReturnFalseHook(plugin, Keys.hide_stories_tab)
+            plugin.hook_all_methods(SharedMediaLayout, "includeStories", return_false_hook)
+            plugin.hook_all_methods(SharedMediaLayout, "isStoriesView", return_false_hook)
+            plugin.hook_all_methods(SharedMediaLayout, "isArchivedOnlyStoriesView", return_false_hook)
         except Exception:
             pass
 
