@@ -92,7 +92,8 @@ class LiteGramPlugin(BasePlugin):
         if error is not None or response is None:
             return HookResult()
         if (
-            self.get_setting(Keys.hide_premium_emoji_packs, False)
+            self.get_setting(Keys.hide_premium_emoji_keyboard, False)
+            or self.get_setting(Keys.hide_premium_emoji_reactions, False)
             or self.get_setting(Keys.hide_premium_search, False)
             or self.get_setting(Keys.hide_premium_suggestions, False)
             or self.get_setting(Keys.hide_premium_stickers_recent, False)

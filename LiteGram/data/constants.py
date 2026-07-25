@@ -47,12 +47,14 @@ class Keys:
     hide_profile_music = "hideProfileMusic"
     hide_profile_business = "hideProfileBusiness"
 
-    hide_premium_emoji_packs = "hidePremiumEmojiPacks"
+    hide_premium_emoji_keyboard = "hidePremiumEmojiKeyboard"
+    hide_premium_emoji_reactions = "hidePremiumEmojiReactions"
     hide_premium_search = "hidePremiumSearch"
     hide_premium_suggestions = "hidePremiumSuggestions"
     switch_all_premium_emoji = "switchAllPremiumEmoji"
     PREMIUM_EMOJI_ROWS = (
-        (hide_premium_emoji_packs, "hide_premium_emoji_packs"),
+        (hide_premium_emoji_keyboard, "hide_premium_emoji_keyboard"),
+        (hide_premium_emoji_reactions, "hide_premium_emoji_reactions"),
         (hide_premium_search, "hide_premium_search"),
         (hide_premium_suggestions, "hide_premium_suggestions"),
     )
@@ -95,15 +97,6 @@ class Keys:
 
     # --- Emoji Search Options ---
     hide_emoji_search = "hideEmojiSearch"
-    hide_sticker_search = "hideStickerSearch"
-    hide_gif_search = "hideGifSearch"
-    switch_all_emoji_search = "switchAllEmojiSearch"
-
-    EMOJI_SEARCH_ROWS = (
-        (hide_emoji_search, "hide_emoji_search"),
-        (hide_sticker_search, "hide_sticker_search"),
-        (hide_gif_search, "hide_gif_search"),
-    )
 
     # --- Settings Option Rows (shared between ui/settings and utils/settings_utils) ---
     SETTINGS_OPTION_ROWS = (

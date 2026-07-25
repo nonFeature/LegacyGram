@@ -81,14 +81,13 @@ STRINGS = {
 
         # --- Emoji Search Options ---
         "emoji_search": "Эмодзи в поле поиска",
-        "hide_emoji_search": "Скрыть в категории Эмодзи",
-        "hide_sticker_search": "Скрыть в категории Стикеры",
-        "hide_gif_search": "Скрыть в категории GIF",
+        "hide_emoji_search": "Скрыть категории в поиске",
         "hide_saved_messages_tags": "Скрыть теги в сохранённых сообщениях",
 
         # --- Keyboard Options ---
         "premium_emoji_settings_header": "Скрытие кастомных эмодзи",
-        "hide_premium_emoji_packs": "Скрыть в клавиатуре и в реакциях",
+        "hide_premium_emoji_keyboard": "Скрыть в клавиатуре",
+        "hide_premium_emoji_reactions": "Скрыть в реакциях",
         "hide_premium_search": "Скрыть в поиске",
         "hide_premium_suggestions": "Скрыть в подсказках",
         "premium_stickers_settings_header": "Скрытие премиум-стикеров",
@@ -197,13 +196,12 @@ STRINGS = {
 
         # --- Emoji Search Options ---
         "emoji_search": "Emoji in search field",
-        "hide_emoji_search": "Hide Emoji Search",
-        "hide_sticker_search": "Hide Sticker Search",
-        "hide_gif_search": "Hide GIF Search",
+        "hide_emoji_search": "Hide Categories in Search",
 
         # --- Keyboard Options ---
         "premium_emoji_settings_header": "Hide Custom Emoji",
-        "hide_premium_emoji_packs": "Hide in Keyboard and Reactions",
+        "hide_premium_emoji_keyboard": "Hide in Keyboard",
+        "hide_premium_emoji_reactions": "Hide in Reactions",
         "hide_premium_search": "Hide in Search",
         "hide_premium_suggestions": "Hide in Suggestions",
         "premium_stickers_settings_header": "Hide Premium Stickers",

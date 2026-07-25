@@ -40,10 +40,6 @@ def toggle_settings_options(_: View | None = None) -> None:
     toggle_group_options([key for key, _ in Keys.SETTINGS_OPTION_ROWS])
 
 
-def toggle_emoji_search_options(_: View | None = None) -> None:
-    toggle_group_options([key for key, _ in Keys.EMOJI_SEARCH_ROWS])
-
-
 def toggle_premium_emoji_options(_: View | None = None) -> None:
     toggle_group_options([key for key, _ in Keys.PREMIUM_EMOJI_ROWS], default_val=True)
 
