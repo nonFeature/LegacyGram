@@ -36,10 +36,13 @@ class StickerCategoriesVisibilityHook(BaseHook):
     def after_hooked_method(self, param):
         if not self.is_enabled():
             return
-        try:
-            param.thisObject.setVisibility(8)  # GONE
-        except Exception:
-            pass
+        view = param.thisObject
+        if view:
+            try:
+                if view.getVisibility() != 8:
+                    view.setVisibility(8)
+            except Exception:
+                pass
 
 
 # ============================================================
@@ -51,11 +54,6 @@ def register_hide_emoji_search(plugin):
     if StickerCategoriesListView:
         try:
             plugin.hook_all_methods(StickerCategoriesListView, "updateCategoriesShown", UpdateCategoriesShownHook(plugin))
-        except Exception:
-            pass
-        try:
-            vis_hook = StickerCategoriesVisibilityHook(plugin)
-            plugin.hook_all_methods(StickerCategoriesListView, "onAttachedToWindow", vis_hook)
-            plugin.hook_all_constructors(StickerCategoriesListView, vis_hook)
+            plugin.hook_all_methods(StickerCategoriesListView, "onLayout", StickerCategoriesVisibilityHook(plugin))
         except Exception:
             pass

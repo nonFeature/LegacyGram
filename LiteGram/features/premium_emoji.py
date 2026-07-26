@@ -4,28 +4,36 @@ from LiteGram.data.constants import Keys
 from LiteGram.main import LiteGramPlugin
 from LiteGram.utils.xposed_utils import BaseHook
 
+
+def safe_find_class(class_name):
+    try:
+        return find_class(class_name)
+    except Exception:
+        return None
+
+
 # ============================================================
 # Class resolution
 # ============================================================
 
-Emoji = find_class("org.telegram.messenger.Emoji")
-EmojiView = find_class("org.telegram.ui.Components.EmojiView")
-EmojiGridAdapter = find_class("org.telegram.ui.Components.EmojiView$EmojiGridAdapter")
-EmojiSearchAdapter = find_class("org.telegram.ui.Components.EmojiView$EmojiSearchAdapter")
-SuggestEmojiView = find_class("org.telegram.ui.Components.SuggestEmojiView")
-ArrayList = find_class("java.util.ArrayList")
-MessageObject = find_class("org.telegram.messenger.MessageObject")
-StickerEmojiCell = find_class("org.telegram.ui.Cells.StickerEmojiCell")
-ChatActivityEnterView = find_class("org.telegram.ui.Components.ChatActivityEnterView")
-MediaDataController = find_class("org.telegram.messenger.MediaDataController")
-EmojiSearchAdapterRunnable = find_class("org.telegram.ui.Components.EmojiView$EmojiSearchAdapter$5")
-EmojiTabsStrip = find_class("org.telegram.ui.Components.EmojiTabsStrip")
-SelectAnimatedEmojiDialog = find_class("org.telegram.ui.SelectAnimatedEmojiDialog")
-CustomEmojiReactionsWindow = find_class("org.telegram.ui.Components.Reactions.CustomEmojiReactionsWindow")
-ReactionsContainerLayout = find_class("org.telegram.ui.Components.ReactionsContainerLayout")
-StickerCategoriesListView = find_class("org.telegram.ui.Components.StickerCategoriesListView")
-SearchBox = find_class("org.telegram.ui.SelectAnimatedEmojiDialog$SearchBox")
-Thread = find_class("java.lang.Thread")
+Emoji = safe_find_class("org.telegram.messenger.Emoji")
+EmojiView = safe_find_class("org.telegram.ui.Components.EmojiView")
+EmojiGridAdapter = safe_find_class("org.telegram.ui.Components.EmojiView$EmojiGridAdapter")
+EmojiSearchAdapter = safe_find_class("org.telegram.ui.Components.EmojiView$EmojiSearchAdapter")
+SuggestEmojiView = safe_find_class("org.telegram.ui.Components.SuggestEmojiView")
+ArrayList = safe_find_class("java.util.ArrayList")
+MessageObject = safe_find_class("org.telegram.messenger.MessageObject")
+StickerEmojiCell = safe_find_class("org.telegram.ui.Cells.StickerEmojiCell")
+ChatActivityEnterView = safe_find_class("org.telegram.ui.Components.ChatActivityEnterView")
+MediaDataController = safe_find_class("org.telegram.messenger.MediaDataController")
+EmojiSearchAdapterRunnable = safe_find_class("org.telegram.ui.Components.EmojiView$EmojiSearchAdapter$5")
+EmojiTabsStrip = safe_find_class("org.telegram.ui.Components.EmojiTabsStrip")
+SelectAnimatedEmojiDialog = safe_find_class("org.telegram.ui.SelectAnimatedEmojiDialog")
+CustomEmojiReactionsWindow = safe_find_class("org.telegram.ui.Components.Reactions.CustomEmojiReactionsWindow")
+ReactionsContainerLayout = safe_find_class("org.telegram.ui.Components.ReactionsContainerLayout")
+StickerCategoriesListView = safe_find_class("org.telegram.ui.Components.StickerCategoriesListView")
+SearchBox = safe_find_class("org.telegram.ui.SelectAnimatedEmojiDialog$SearchBox")
+Thread = safe_find_class("java.lang.Thread")
 
 # ============================================================
 # Module state
@@ -327,10 +335,14 @@ def _filter_search_packs(packs_list):
 # ============================================================
 
 HANDLERS = {
-    "TL_messages_getFeaturedStickers": lambda r, p: _filter_featured_sticker_sets(r.sets) if p.get_setting(Keys.hide_premium_stickers_grid, False) else None,
-    "TL_messages_searchStickers": lambda r, p: _filter_list(r.stickers, is_sticker=True) if p.get_setting(Keys.hide_premium_stickers_search, False) else None,
+    "TL_messages_getFeaturedStickers": lambda r, p: (
+        _filter_featured_sticker_sets(getattr(r, "sets", None)) if p.get_setting(Keys.hide_premium_stickers_grid, False) else None
+    ),
+    "TL_messages_searchStickers": lambda r, p: (
+        _filter_list(getattr(r, "stickers", None), is_sticker=True) if p.get_setting(Keys.hide_premium_stickers_search, False) else None
+    ),
     "TL_messages_getRecentStickers": lambda r, p: (
-        _filter_list(r.stickers, is_sticker=True) if p.get_setting(Keys.hide_premium_stickers_recent, False) else None
+        _filter_list(getattr(r, "stickers", None), is_sticker=True) if p.get_setting(Keys.hide_premium_stickers_recent, False) else None
     ),
     "TL_messages_getStickers": lambda r, p: (
         _filter_list(getattr(r, "stickers", None), is_sticker=True) if p.get_setting(Keys.hide_premium_stickers_search, False) else None
@@ -345,8 +357,11 @@ def filter_response(request_name, response):
     handler = HANDLERS.get(request_name)
     if handler is None:
         return
-    plugin = LiteGramPlugin.get_instance()
-    handler(response, plugin)
+    try:
+        plugin = LiteGramPlugin.get_instance()
+        handler(response, plugin)
+    except Exception:
+        pass
 
 
 # ============================================================
@@ -363,24 +378,37 @@ class BlockNonStockHook(BaseHook):
         if not param.args:
             return
         source = param.args[0]
-        if _is_non_stock(source):
+        if isinstance(source, str) and source.startswith("animated_"):
             param.setResult(None)
 
 
 class FilterRecentEmojiHook(BaseHook):
-    """Remove custom emoji from recent emoji list."""
+    """Remove custom emoji from recent emoji list without mutating Telegram's internal cache."""
 
     def after_hooked_method(self, param):
         if not self.is_enabled():
             return
         recent = param.getResult()
-        if not recent:
+        if not recent or not ArrayList:
             return
-        i = recent.size() - 1
-        while i >= 0:
-            if _is_non_stock(recent.get(i)):
-                recent.remove(i)
-            i -= 1
+        size = recent.size()
+        has_non_stock = False
+        for i in range(size):
+            item = recent.get(i)
+            if isinstance(item, str) and item.startswith("animated_"):
+                has_non_stock = True
+                break
+        if not has_non_stock:
+            return
+        filtered = ArrayList()
+        for i in range(size):
+            item = recent.get(i)
+            if isinstance(item, str):
+                if not item.startswith("animated_"):
+                    filtered.add(item)
+            else:
+                filtered.add(item)
+        param.setResult(filtered)
 
 
 # ============================================================
@@ -433,51 +461,55 @@ class FilterSuggestResultsHook(BaseHook):
 
 
 def _hide_view(view) -> None:
+    if view is None:
+        return
     try:
-        view.setVisibility(8)
-    except Exception:
-        pass
-    try:
-        lp = view.getLayoutParams()
-        if lp:
-            lp.height = 0
-            lp.width = 0
-            view.setLayoutParams(lp)
+        if view.getVisibility() != 8:
+            view.setVisibility(8)
     except Exception:
         pass
 
 
 def _restore_view(view) -> None:
+    if view is None:
+        return
     try:
-        view.setVisibility(0)
-    except Exception:
-        pass
-    try:
-        lp = view.getLayoutParams()
-        if lp and getattr(lp, "height", None) == 0:
-            lp.height = -2
-            lp.width = -2
-            view.setLayoutParams(lp)
+        if view.getVisibility() != 0:
+            view.setVisibility(0)
     except Exception:
         pass
 
 
 class CheckDocumentsHook(BaseHook):
-    """Remove premium stickers from recentStickers and favouriteStickers in EmojiView."""
+    """Remove premium stickers from recentStickers and favouriteStickers in EmojiView without in-place mutation."""
 
     def after_hooked_method(self, param):
         if not self.is_enabled():
             return
         obj = param.thisObject
+        if not obj or not ArrayList:
+            return
         for field in ("favouriteStickers", "recentStickers"):
             lst = get_private_field(obj, field)
             if not lst:
                 continue
-            i = lst.size() - 1
-            while i >= 0:
+            size = lst.size()
+            has_prem = False
+            for i in range(size):
                 if _is_premium_sticker(lst.get(i)):
-                    lst.remove(i)
-                i -= 1
+                    has_prem = True
+                    break
+            if not has_prem:
+                continue
+            filtered = ArrayList()
+            for i in range(size):
+                item = lst.get(i)
+                if not _is_premium_sticker(item):
+                    filtered.add(item)
+            try:
+                setattr(obj, field, filtered)
+            except Exception:
+                pass
 
 
 class HidePremiumStickerCellHook(BaseHook):
@@ -498,33 +530,8 @@ class HidePremiumStickerCellHook(BaseHook):
 
 
 # ============================================================
-# UI hooks — keyboard performance
+# UI hooks — keyboard performance & category hiding
 # ============================================================
-
-
-def _get_call_context():
-    """Returns 'reactions', 'keyboard', 'status_bg', or 'other' based on Java stack trace."""
-    if not Thread:
-        return "other"
-    try:
-        stack = Thread.currentThread().getStackTrace()
-        if not stack:
-            return "other"
-        full_stack = " ".join(f"{elem.getClassName()}.{elem.getMethodName()}" for elem in stack)
-        if "CustomEmojiReactionsWindow" in full_stack or "ReactionsContainerLayout" in full_stack or "Reactions" in full_stack:
-            return "reactions"
-        if "EmojiView" in full_stack:
-            return "keyboard"
-        if (
-            "SelectAnimatedEmojiDialog" in full_stack
-            or "DrawerContainer" in full_stack
-            or "showStatusSelect" in full_stack
-            or "PeerColorActivity" in full_stack
-        ):
-            return "status_bg"
-    except Exception:
-        pass
-    return "other"
 
 
 class SkipEmojiPacksHook(BaseHook):
@@ -571,8 +578,6 @@ class FilterSearchV12_8_1Hook(BaseHook):
         runnable_instance = param.thisObject
         search_adapter = getattr(runnable_instance, "this$0", None)
         if search_adapter:
-            if _get_call_context() == "status_bg":
-                return
             result_pre = get_private_field(search_adapter, "resultPre")
             if result_pre:
                 _filter_search_results(result_pre)
@@ -598,68 +603,6 @@ class BlockGlobalSearchHook(BaseHook):
         param.setResult(None)
 
 
-class DisableNotificationsLockerHook(BaseHook):
-    def __init__(self, plugin):
-        super().__init__(plugin, Keys.hide_premium_emoji_keyboard)
-
-    def after_hooked_method(self, param):
-        if not self.is_enabled():
-            return
-        locker = get_private_field(param.thisObject, "notificationsLocker")
-        if locker:
-            try:
-                locker.disabled = True
-            except Exception:
-                pass
-
-
-class SetAllowAnimatedEmojiFalseHook(BaseHook):
-    def __init__(self, plugin):
-        super().__init__(plugin, Keys.hide_premium_emoji_keyboard)
-
-    def after_hooked_method(self, param):
-        if not self.is_enabled():
-            return
-        try:
-            param.thisObject.allowAnimatedEmoji = False
-        except Exception:
-            pass
-
-
-class FilterStickerSetsType5Hook(BaseHook):
-    def after_hooked_method(self, param):
-        if not param.args or param.args[0] != 5:
-            return
-        ctx = _get_call_context()
-        if ctx == "status_bg":
-            return
-        plugin = self.plugin
-        if ctx == "reactions":
-            if plugin.get_setting(Keys.hide_premium_emoji_reactions, False):
-                if ArrayList:
-                    param.setResult(ArrayList())
-        elif ctx == "keyboard":
-            if plugin.get_setting(Keys.hide_premium_emoji_keyboard, False):
-                if ArrayList:
-                    param.setResult(ArrayList())
-
-
-class FilterFeaturedEmojiSetsHook(BaseHook):
-    def after_hooked_method(self, param):
-        ctx = _get_call_context()
-        if ctx == "status_bg":
-            return
-        plugin = self.plugin
-        if ctx == "reactions":
-            if plugin.get_setting(Keys.hide_premium_emoji_reactions, False):
-                if ArrayList:
-                    param.setResult(ArrayList())
-        elif ctx == "keyboard":
-            if plugin.get_setting(Keys.hide_premium_emoji_keyboard, False):
-                if ArrayList:
-                    param.setResult(ArrayList())
-
-
 class HideGroupStickerSetHook(BaseHook):
     def __init__(self, plugin):
         super().__init__(plugin, Keys.hide_group_stickers)
@@ -679,9 +622,13 @@ class EmojiTabsStripConstructorHook(BaseHook):
             return
         if not param.args or len(param.args) < 6:
             return
-        ctx = _get_call_context()
-        if ctx != "keyboard":
+        # Arg 4 (includeSettings) is True ONLY for main keyboard (EmojiView), False for all SelectAnimatedEmojiDialogs (Status, Reactions, etc.)
+        if not param.args[4]:
             return
+        # In EmojiTabsStrip constructor, arg 6 is type: 0 = main EmojiView keyboard
+        if len(param.args) > 6 and isinstance(param.args[6], int):
+            if param.args[6] != 0:
+                return
         try:
             param.args[5] = False
         except Exception:
@@ -708,6 +655,73 @@ class FilterReactionsLayoutHook(BaseHook):
             pass
 
 
+class SelectAnimatedEmojiDialogUpdateRowsHook(BaseHook):
+    """Filter custom emoji and hide category bar EXCLUSIVELY in Reactions window (types 1, 8, 11)."""
+
+    def before_hooked_method(self, param):
+        global _in_reactions_dialog_update
+        dialog = param.thisObject
+        if not dialog:
+            return
+        try:
+            dtype = get_private_field(dialog, "type")
+            plugin = self.plugin
+
+            # STRICT FILTER: ONLY Reactions window (types 1, 8, 11). Ignore status, colors, effects, etc.!
+            if dtype in (1, 8, 11) and plugin.get_setting(Keys.hide_premium_emoji_reactions, False):
+                _in_reactions_dialog_update = True
+
+                # 1. Remove custom emoji reactions
+                recent_to_set = get_private_field(dialog, "recentReactionsToSet")
+                if recent_to_set:
+                    _filter_reactions_list(recent_to_set)
+
+                # 2. Empty frozenEmojiPacks so updateRows() will not add custom emoji packs
+                frozen = get_private_field(dialog, "frozenEmojiPacks")
+                if frozen is not None:
+                    try:
+                        frozen.clear()
+                    except Exception:
+                        pass
+                else:
+                    if ArrayList:
+                        try:
+                            dialog.frozenEmojiPacks = ArrayList()
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
+    def after_hooked_method(self, param):
+        global _in_reactions_dialog_update
+        _in_reactions_dialog_update = False
+        dialog = param.thisObject
+        if not dialog:
+            return
+        try:
+            dtype = get_private_field(dialog, "type")
+            plugin = self.plugin
+
+            # STRICT FILTER: Hide category bar EXCLUSIVELY in Reactions window (types 1, 8, 11)
+            if dtype in (1, 8, 11) and plugin.get_setting(Keys.hide_premium_emoji_reactions, False):
+                tabs = get_private_field(dialog, "emojiTabs")
+                if tabs:
+                    _hide_view(tabs)
+                shadow = get_private_field(dialog, "emojiTabsShadow")
+                if shadow:
+                    _hide_view(shadow)
+
+                # Also clear packs array if populated during updateRows
+                packs = get_private_field(dialog, "packs")
+                if packs:
+                    try:
+                        packs.clear()
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+
 # ============================================================
 # Registration
 # ============================================================
@@ -717,11 +731,17 @@ def register_premium_emoji(plugin):
     _init(plugin)
     classes = []
 
+    if SelectAnimatedEmojiDialog:
+        try:
+            plugin.hook_all_methods(SelectAnimatedEmojiDialog, "updateRows", SelectAnimatedEmojiDialogUpdateRowsHook(plugin))
+            classes.append("SelectAnimatedEmojiDialog")
+        except Exception:
+            pass
+
     if ReactionsContainerLayout:
         try:
             rx_hook = FilterReactionsLayoutHook(plugin)
             plugin.hook_all_methods(ReactionsContainerLayout, "showCustomEmojiReactionDialog", rx_hook)
-            plugin.hook_all_methods(ReactionsContainerLayout, "setMessage", rx_hook)
             plugin.hook_all_constructors(ReactionsContainerLayout, rx_hook)
             classes.append("ReactionsContainerLayout")
         except Exception:
@@ -754,18 +774,7 @@ def register_premium_emoji(plugin):
             plugin.hook_all_methods(EmojiView, "getEmojipacks", FilterEmojiPacksHook(plugin))
         except Exception:
             pass
-        try:
-            plugin.hook_all_constructors(EmojiView, SetAllowAnimatedEmojiFalseHook(plugin))
-        except Exception:
-            pass
         classes.append("EmojiView")
-
-    if EmojiGridAdapter:
-        try:
-            plugin.hook_all_methods(EmojiGridAdapter, "processEmoji", SkipEmojiPacksHook(plugin))
-            classes.append("EmojiGridAdapter")
-        except Exception:
-            pass
 
     if EmojiSearchAdapter:
         try:
@@ -810,25 +819,3 @@ def register_premium_emoji(plugin):
             classes.append("StickerEmojiCell")
         except Exception:
             pass
-
-    if ChatActivityEnterView:
-        try:
-            plugin.hook_all_constructors(ChatActivityEnterView, DisableNotificationsLockerHook(plugin))
-            classes.append("ChatActivityEnterView")
-        except Exception:
-            pass
-
-    if MediaDataController:
-        try:
-            plugin.hook_all_methods(MediaDataController, "getStickerSets", FilterStickerSetsType5Hook(plugin))
-        except Exception:
-            pass
-        try:
-            plugin.hook_all_methods(MediaDataController, "getFeaturedEmojiSets", FilterFeaturedEmojiSetsHook(plugin))
-        except Exception:
-            pass
-        try:
-            plugin.hook_all_methods(MediaDataController, "getGroupStickerSetById", HideGroupStickerSetHook(plugin))
-        except Exception:
-            pass
-        classes.append("MediaDataController")
