@@ -487,29 +487,15 @@ class CheckDocumentsHook(BaseHook):
         if not self.is_enabled():
             return
         obj = param.thisObject
-        if not obj or not ArrayList:
-            return
         for field in ("favouriteStickers", "recentStickers"):
             lst = get_private_field(obj, field)
             if not lst:
                 continue
-            size = lst.size()
-            has_prem = False
-            for i in range(size):
+            i = lst.size() - 1
+            while i >= 0:
                 if _is_premium_sticker(lst.get(i)):
-                    has_prem = True
-                    break
-            if not has_prem:
-                continue
-            filtered = ArrayList()
-            for i in range(size):
-                item = lst.get(i)
-                if not _is_premium_sticker(item):
-                    filtered.add(item)
-            try:
-                setattr(obj, field, filtered)
-            except Exception:
-                pass
+                    lst.remove(i)
+                i -= 1
 
 
 class HidePremiumStickerCellHook(BaseHook):
@@ -653,6 +639,25 @@ class FilterReactionsLayoutHook(BaseHook):
                 _filter_reactions_list(all_reactions)
         except Exception:
             pass
+
+
+_in_reactions_dialog_update = False
+
+
+class FilterStickerSetsType5Hook(BaseHook):
+    def after_hooked_method(self, param):
+        global _in_reactions_dialog_update
+        if _in_reactions_dialog_update:
+            if ArrayList:
+                param.setResult(ArrayList())
+
+
+class FilterFeaturedEmojiSetsHook(BaseHook):
+    def after_hooked_method(self, param):
+        global _in_reactions_dialog_update
+        if _in_reactions_dialog_update:
+            if ArrayList:
+                param.setResult(ArrayList())
 
 
 class SelectAnimatedEmojiDialogUpdateRowsHook(BaseHook):
@@ -819,3 +824,14 @@ def register_premium_emoji(plugin):
             classes.append("StickerEmojiCell")
         except Exception:
             pass
+
+    if MediaDataController:
+        try:
+            plugin.hook_all_methods(MediaDataController, "getStickerSets", FilterStickerSetsType5Hook(plugin))
+        except Exception:
+            pass
+        try:
+            plugin.hook_all_methods(MediaDataController, "getFeaturedEmojiSets", FilterFeaturedEmojiSetsHook(plugin))
+        except Exception:
+            pass
+        classes.append("MediaDataController")
