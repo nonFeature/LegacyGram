@@ -41,7 +41,6 @@ STRINGS = {
         # --- Profile Tabs ---
         "profile_tabs": "Вкладки в профиле",
         "hide_stories_tab": "Скрыть Истории",
-        "hide_stories_tab_sub": "Также скрывает Posts и Archived Posts в вашем профиле",
         "hide_gifts_tab": "Скрыть Подарки",
 
         # --- Profile Appearance ---
@@ -78,11 +77,7 @@ STRINGS = {
 
         "hide_stars_rating": "Скрыть рейтинг звёзд",
         "hide_star_reaction": "Скрыть реакции за звёзды",
-
-        # --- Emoji Search Options ---
-        "emoji_search": "Эмодзи в поле поиска",
-        "hide_emoji_search": "Скрыть категории в поиске",
-        "hide_saved_messages_tags": "Скрыть теги в сохранённых сообщениях",
+        "hide_emoji_search": "Скрыть эмодзи в поле поиска",
 
         # --- Keyboard Options ---
         "premium_emoji_settings_header": "Скрытие кастомных эмодзи",
@@ -104,7 +99,7 @@ STRINGS = {
 
         # --- AI Features ---
         "ai_features_header": "ИИ-Функции",
-        "hide_ai_button": "Скрыть кнопку 'AI' в поле ввода",
+        "hide_ai_button": "Скрыть кнопку \"AI\" в поле ввода",
         "hide_ai_summarize": "Скрыть кнопку саммари",
 
         # --- About Plugin ---
@@ -158,7 +153,6 @@ STRINGS = {
         # --- Profile Tabs ---
         "profile_tabs": "Profile Tabs",
         "hide_stories_tab": "Hide Stories Tab",
-        "hide_stories_tab_sub": "Also hides Posts and Archived Posts in your profile",
         "hide_gifts_tab": "Hide Gifts Tab",
 
         # --- Profile Appearance ---
@@ -195,10 +189,7 @@ STRINGS = {
 
         "hide_stars_rating": "Hide Stars Rating",
         "hide_star_reaction": "Hide Star Reaction",
-
-        # --- Emoji Search Options ---
-        "emoji_search": "Emoji in search field",
-        "hide_emoji_search": "Hide Categories in Search",
+        "hide_emoji_search": "Hide emoji in search field",
 
         # --- Keyboard Options ---
         "premium_emoji_settings_header": "Hide Custom Emoji",
@@ -220,7 +211,7 @@ STRINGS = {
 
         # --- AI Features ---
         "ai_features_header": "AI Features",
-        "hide_ai_button": "Hide 'AI' Button in Message Input",
+        "hide_ai_button": "Hide \"AI\" Button in Message Input",
         "hide_ai_summarize": "Hide Summarize Button",
 
         # --- About Plugin ---

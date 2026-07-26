@@ -43,7 +43,6 @@ def _chat_settings() -> list[Any]:
         Switch(text=t("hide_giveaway_cards"), key=Keys.hide_giveaway_cards),
         Switch(text=t("hide_star_reaction"), key=Keys.hide_star_reaction),
         Switch(text=t("hide_group_stickers"), key=Keys.hide_group_stickers),
-        Header(text=t("emoji_search")),
         Switch(text=t("hide_emoji_search"), key=Keys.hide_emoji_search),
         Header(text=t("premium_emoji_settings_header")),
         Text(text=t("switch_all"), link_alias=Keys.switch_all_premium_emoji, on_click=toggle_premium_emoji_options),
@@ -96,7 +95,7 @@ def _profile_settings() -> list[Any]:
         Switch(text=t("hide_profile_actions_gift_button"), key=Keys.hide_profile_actions_gift_button),
         Switch(text=t("hide_profile_actions_stream_button"), key=Keys.hide_profile_actions_stream_button),
         Header(text=t("profile_tabs")),
-        Switch(text=t("hide_stories_tab"), subtext=t("hide_stories_tab_sub"), key=Keys.hide_stories_tab),
+        Switch(text=t("hide_stories_tab"), key=Keys.hide_stories_tab),
         Switch(text=t("hide_gifts_tab"), key=Keys.hide_gifts_tab),
         Header(text=t("profile_appearance")),
         Text(
