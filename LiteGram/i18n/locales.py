@@ -97,8 +97,10 @@ STRINGS = {
         "hide_group_stickers": "Скрыть стикерпак группы",
 
         # --- Premium Features Hiding ---
+        "premium_features_header": "Премиум-Функции",
         "hide_premium_features": "Скрыть премиум-функции",
         "hide_premium_features_sub": "Скрывает некоторые настройки конфиденциальности, теги папок, и перевод чатов",
+        "hide_articles_editor": "Скрыть редактор статей",
 
         # --- AI Features ---
         "ai_features_header": "ИИ-Функции",
@@ -211,8 +213,10 @@ STRINGS = {
         "hide_group_stickers": "Hide Group Sticker Pack",
 
         # --- Premium Features Hiding ---
+        "premium_features_header": "Premium Features",
         "hide_premium_features": "Hide premium features",
         "hide_premium_features_sub": "Hides some privacy settings, folder tags, and chat translation",
+        "hide_articles_editor": "Hide articles editor",
 
         # --- AI Features ---
         "ai_features_header": "AI Features",

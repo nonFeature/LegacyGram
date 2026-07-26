@@ -128,7 +128,7 @@ def _profile_settings() -> list[Any]:
 
 
 def _interface_settings() -> list[Any]:
-    return [
+    items: list[Any] = [
         Header(text=t("settings_options")),
         Text(text=t("switch_all"), link_alias=Keys.switch_all, on_click=toggle_settings_options),
         *[Switch(text=t(text_key), key=key) for key, text_key in SETTINGS_OPTION_ROWS],
@@ -139,9 +139,19 @@ def _interface_settings() -> list[Any]:
             on_click=open_extera_tab(Keys.drawer_options),
             icon=resolve_icon("extera_outline"),
         ),
-        Divider(),
+        Header(text=t("premium_features_header")),
         Switch(text=t("hide_premium_features"), subtext=t("hide_premium_features_sub"), key=Keys.hide_premium_features),
     ]
+
+    try:
+        from LiteGram.utils.utils import get_client_version, parse_version
+
+        if parse_version(get_client_version()) >= (12, 9, 0):
+            items.append(Switch(text=t("hide_articles_editor"), key=Keys.hide_articles_editor))
+    except Exception:
+        pass
+
+    return items
 
 
 def _about_settings() -> list[Any]:
