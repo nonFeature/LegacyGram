@@ -1,12 +1,10 @@
 name: Build LiteGram Plugin
 
 on:
-  push:
-    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
-    if: "contains(github.event.head_commit.message, 'бурмалда')"
     runs-on: ubuntu-latest
     permissions:
       contents: write
