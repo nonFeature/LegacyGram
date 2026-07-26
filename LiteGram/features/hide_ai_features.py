@@ -5,7 +5,7 @@ from LiteGram.utils.xposed_utils import BaseHook
 
 
 # спизжено у @kvucoPlugins, извините 👉👈  # noqa: RUF003
-class AiControllerCanUseAIHook(BaseHook):
+class TranslateControllerIsSummarizableHook(BaseHook):
     def before_hooked_method(self, param):
         if self.plugin.get_setting(Keys.hide_ai_summarize, False):
             param.setResult(False)
@@ -24,11 +24,11 @@ class ChatActivityShowAiButtonHook(BaseHook):
 
 
 def register_hide_ai_features(plugin) -> None:
-    # 1. AI settings
+    # 1. Summarize button inside message bubble
     try:
-        AiController = find_class("com.exteragram.messenger.ai.AiController")
-        if AiController is not None:
-            plugin.hook_all_methods(AiController, "canUseAI", AiControllerCanUseAIHook(plugin))
+        TranslateController = find_class("org.telegram.messenger.TranslateController")
+        if TranslateController is not None:
+            plugin.hook_all_methods(TranslateController, "isSummarizable", TranslateControllerIsSummarizableHook(plugin))
     except Exception:
         pass
 
