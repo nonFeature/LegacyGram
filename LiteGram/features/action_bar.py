@@ -43,6 +43,22 @@ _ITEM_KEY_MAP = {
 
 R_drawable = find_class("org.telegram.messenger.R$drawable")
 MSG_REPORT_ID = getattr(R_drawable, "msg_report", -1) if R_drawable else -1
+MSG_CLEAR_ID = getattr(R_drawable, "msg_clear", -1) if R_drawable else -1
+
+
+def _is_clear_history(args) -> bool:
+    if not args:
+        return False
+    item_id = args[0]
+    if len(args) > 1 and MSG_CLEAR_ID > 0 and args[1] == MSG_CLEAR_ID:
+        return True
+    if len(args) > 2 and args[2] is not None:
+        txt = str(args[2]).lower()
+        if ("очист" in txt or "clear" in txt) and ("истори" in txt or "history" in txt):
+            return True
+    if item_id == 103:
+        return True
+    return False
 
 
 def _is_report(args) -> bool:
@@ -63,11 +79,14 @@ def _is_report(args) -> bool:
 def _should_hide_menu_item(plugin, args) -> bool:
     if not args:
         return False
-    item_id = args[0]
+
+    if _is_clear_history(args):
+        return bool(plugin.get_setting(Keys.hide_action_bar_clear_history, False))
 
     if _is_report(args):
         return bool(plugin.get_setting(Keys.hide_action_bar_report, False))
 
+    item_id = args[0]
     if item_id in _ITEM_KEY_MAP:
         return bool(plugin.get_setting(_ITEM_KEY_MAP[item_id], False))
 

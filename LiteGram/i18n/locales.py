@@ -66,6 +66,7 @@ STRINGS = {
         "hide_action_bar_boost_group": "Скрыть \"Голоса\"",
         "hide_action_bar_add_shortcut": "Скрыть \"Создать ярлык\"",
         "hide_action_bar_report": "Скрыть \"Пожаловаться\"",
+        "hide_action_bar_clear_history": "Скрыть \"Очистить историю\"",
 
         # --- Gifts Related ---
         "gifts": "Элементы чата",
@@ -178,6 +179,7 @@ STRINGS = {
         "hide_action_bar_boost_group": "Hide \"Boost Group\"",
         "hide_action_bar_add_shortcut": "Hide \"Add to Home Screen\"",
         "hide_action_bar_report": "Hide \"Report\"",
+        "hide_action_bar_clear_history": "Hide \"Clear History\"",
 
         # --- Gifts Related ---
         "gifts": "Chat Elements",

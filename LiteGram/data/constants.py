@@ -87,6 +87,7 @@ class Keys:
     hide_action_bar_boost_group = "hideActionBarBoostGroup"
     hide_action_bar_add_shortcut = "hideActionBarAddShortcut"
     hide_action_bar_report = "hideActionBarReport"
+    hide_action_bar_clear_history = "hideActionBarClearHistory"
 
     # --- Gifts ---
     hide_bottom_gift_button = "hideBottomGiftButton"

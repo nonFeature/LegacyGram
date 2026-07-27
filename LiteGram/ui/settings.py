@@ -37,6 +37,7 @@ def _chat_settings() -> list[Any]:
         Switch(text=t("hide_action_bar_boost_group"), key=Keys.hide_action_bar_boost_group),
         Switch(text=t("hide_action_bar_add_shortcut"), key=Keys.hide_action_bar_add_shortcut),
         Switch(text=t("hide_action_bar_report"), key=Keys.hide_action_bar_report),
+        Switch(text=t("hide_action_bar_clear_history"), key=Keys.hide_action_bar_clear_history),
         Header(text=t("gifts")),
         Switch(text=t("hide_bottom_gift_button"), key=Keys.hide_bottom_gift_button),
         Switch(text=t("hide_gift_cards"), key=Keys.hide_gift_cards),
