@@ -1,3 +1,4 @@
+import time
 from typing import Any, Optional
 
 from base_plugin import BasePlugin, HookResult
@@ -43,11 +44,10 @@ class LiteGramPlugin(BasePlugin):
     def get_setting(self, key: str, default: Any = False) -> Any:
         if not hasattr(self, "_settings_cache"):
             self._settings_cache = {}
-        import time
 
-        now = time.time()
+        now = time.monotonic()
         cached = self._settings_cache.get(key)
-        if cached is None or (now - cached[1] > 2.0):
+        if cached is None or (now - cached[1] > 1.0):
             val = super().get_setting(key, default)
             self._settings_cache[key] = (val, now)
             return val
@@ -55,9 +55,7 @@ class LiteGramPlugin(BasePlugin):
 
     def set_setting(self, key: str, value: Any, reload_settings: bool = False) -> None:
         if hasattr(self, "_settings_cache"):
-            import time
-
-            self._settings_cache[key] = (value, time.time())
+            self._settings_cache[key] = (value, time.monotonic())
         super().set_setting(key, value, reload_settings)
 
     def on_plugin_load(self) -> None:
