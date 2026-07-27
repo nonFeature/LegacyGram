@@ -50,14 +50,26 @@ def _is_clear_history(args) -> bool:
     if not args:
         return False
     item_id = args[0]
+
     if len(args) > 1 and MSG_CLEAR_ID > 0 and args[1] == MSG_CLEAR_ID:
         return True
+
     if len(args) > 2 and args[2] is not None:
-        txt = str(args[2]).lower()
-        if ("очист" in txt or "clear" in txt) and ("истори" in txt or "history" in txt):
-            return True
-    if item_id == 103:
+        try:
+            LocaleController = find_class("org.telegram.messenger.LocaleController")
+            R = find_class("org.telegram.messenger.R")
+            if LocaleController and R:
+                s1 = str(LocaleController.getString("ClearHistory", R.string.ClearHistory))
+                s2 = str(LocaleController.getString("ClearAllHistory", R.string.ClearAllHistory))
+                txt = str(args[2])
+                if txt == s1 or txt == s2:
+                    return True
+        except Exception:
+            pass
+
+    if item_id in (15, 103):
         return True
+
     return False
 
 
@@ -65,14 +77,26 @@ def _is_report(args) -> bool:
     if not args:
         return False
     item_id = args[0]
+
     if len(args) > 1 and MSG_REPORT_ID > 0 and args[1] == MSG_REPORT_ID:
         return True
+
     if len(args) > 2 and args[2] is not None:
-        txt = str(args[2]).lower()
-        if "report" in txt or "пожалова" in txt:
-            return True
+        try:
+            LocaleController = find_class("org.telegram.messenger.LocaleController")
+            R = find_class("org.telegram.messenger.R")
+            if LocaleController and R:
+                s1 = str(LocaleController.getString("ReportChat", R.string.ReportChat))
+                s2 = str(LocaleController.getString("Report", R.string.Report))
+                txt = str(args[2])
+                if txt == s1 or txt == s2:
+                    return True
+        except Exception:
+            pass
+
     if item_id == 21:
         return True
+
     return False
 
 
@@ -87,6 +111,11 @@ def _should_hide_menu_item(plugin, args) -> bool:
         return bool(plugin.get_setting(Keys.hide_action_bar_report, False))
 
     item_id = args[0]
+    if item_id == 15:
+        # Item 15 is clearHistoryItem in ChatActivity (groups & DMs) and CALL_ITEM in ProfileActivity
+        if plugin.get_setting(Keys.hide_action_bar_clear_history, False) or plugin.get_setting(Keys.hide_action_bar_live_stream, False):
+            return True
+
     if item_id in _ITEM_KEY_MAP:
         return bool(plugin.get_setting(_ITEM_KEY_MAP[item_id], False))
 
@@ -124,6 +153,14 @@ class ActionBarMenuItemSetSubItemShownHook(BaseHook):
                 pass
 
 
+class ItemOptionsAddHook(BaseHook):
+    def before_hooked_method(self, param):
+        if not self.plugin.get_setting(Keys.hide_action_bar_clear_history, False):
+            return
+        if _is_clear_history(param.args):
+            param.setResult(param.thisObject)
+
+
 class TopicsFragmentUpdateChatInfoHook(BaseHook):
     def after_hooked_method(self, param):
         instance = param.thisObject
@@ -140,6 +177,7 @@ class TopicsFragmentUpdateChatInfoHook(BaseHook):
 def register_action_bar(plugin) -> None:
     ActionBarMenuItem = find_class("org.telegram.ui.ActionBar.ActionBarMenuItem")
     TopicsFragment = find_class("org.telegram.ui.TopicsFragment")
+    ItemOptions = find_class("org.telegram.ui.Components.ItemOptions")
     if ActionBarMenuItem:
         try:
             plugin.hook_all_methods(ActionBarMenuItem, "addSubItem", ActionBarMenuItemAddSubItemHook(plugin))
@@ -151,6 +189,11 @@ def register_action_bar(plugin) -> None:
             pass
         try:
             plugin.hook_all_methods(ActionBarMenuItem, "setSubItemShown", ActionBarMenuItemSetSubItemShownHook(plugin))
+        except Exception:
+            pass
+    if ItemOptions:
+        try:
+            plugin.hook_all_methods(ItemOptions, "add", ItemOptionsAddHook(plugin))
         except Exception:
             pass
     if TopicsFragment:
