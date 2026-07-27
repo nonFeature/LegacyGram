@@ -58,6 +58,24 @@ class LiteGramPlugin(BasePlugin):
             self._settings_cache[key] = (value, time.monotonic())
         super().set_setting(key, value, reload_settings)
 
+        if key == Keys.hide_premium_features and value:
+            try:
+                from hook_utils import find_class
+
+                MessagesController = find_class("org.telegram.messenger.MessagesController")
+                if MessagesController:
+                    for i in range(4):
+                        try:
+                            instance = MessagesController.getInstance(i)
+                            if instance:
+                                field = instance.getClass().getDeclaredField("folderTags")
+                                field.setAccessible(True)
+                                field.setBoolean(instance, False)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+
     def on_plugin_load(self) -> None:
         LiteGramPlugin._instance = self
         tl_hooks = [

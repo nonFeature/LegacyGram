@@ -12,16 +12,19 @@ _field_cache = {}
 def get_row_fields(clazz):
     class_name = clazz.getName()
     if class_name not in _fields_cache:
-        fields = clazz.getDeclaredFields()
         row_fields = []
-        for field in fields:
-            try:
-                if field.getType().toString() == "int" and "row" in field.getName().lower():
-                    if not (field.getModifiers() & Modifier.STATIC):
-                        field.setAccessible(True)
-                        row_fields.append(field)
-            except Exception:
-                pass
+        try:
+            fields = clazz.getDeclaredFields()
+            for field in fields:
+                try:
+                    if field.getType().getName() == "int" and "row" in field.getName().lower():
+                        if not (field.getModifiers() & Modifier.STATIC):
+                            field.setAccessible(True)
+                            row_fields.append(field)
+                except Exception:
+                    pass
+        except Exception:
+            pass
         _fields_cache[class_name] = row_fields
     return _fields_cache[class_name]
 
@@ -68,6 +71,8 @@ class PrivacySettingsActivityUpdateRowsHook(BaseHook):
         if not self.plugin.get_setting(Keys.hide_premium_features, False):
             return
         instance = param.thisObject
+        if not instance:
+            return
         try:
             clazz = instance.getClass()
             voices_row_field = get_cached_field(clazz, "voicesRow")
@@ -88,15 +93,6 @@ class PrivacySettingsActivityUpdateRowsHook(BaseHook):
                     if voices_row < val < row_count:
                         f.setInt(instance, jint(val - 1))
                 row_count_field.setInt(instance, jint(row_count - 1))
-
-                try:
-                    list_adapter_field = get_cached_field(clazz, "listAdapter")
-                    if list_adapter_field is not None:
-                        list_adapter = list_adapter_field.get(instance)
-                        if list_adapter is not None:
-                            list_adapter.notifyDataSetChanged()
-                except Exception:
-                    pass
         except Exception:
             pass
 
@@ -105,20 +101,9 @@ class PrivacySettingsActivityAddPremiumStarHook(BaseHook):
     def before_hooked_method(self, param):
         if not self.plugin.get_setting(Keys.hide_premium_features, False):
             return
-        text = param.args[0]
-        if text:
-            try:
-                LocaleController = find_class("org.telegram.messenger.LocaleController")
-                R = find_class("org.telegram.messenger.R")
-                if LocaleController is not None and R is not None:
-                    privacy_messages_str = LocaleController.getString("PrivacyMessages", R.string.PrivacyMessages)
-                    if str(text) == str(privacy_messages_str):
-                        SpannableStringBuilder = find_class("android.text.SpannableStringBuilder")
-                        if SpannableStringBuilder is not None:
-                            builder = SpannableStringBuilder(text)
-                            param.setResult(builder)
-            except Exception:
-                pass
+        args = param.args
+        if args and args[0]:
+            param.setResult(args[0])
 
 
 class PrivacyControlActivitySetMessageTextHook(BaseHook):
@@ -154,20 +139,10 @@ class FiltersSetupActivityUpdateRowsHook(BaseHook):
                 items_field.setAccessible(True)
                 items = items_field.get(instance)
                 if items and show_tags_row < items.size():
-                    if show_tags_row + 1 < items.size():
-                        items.remove(items.get(show_tags_row + 1))
-                    items.remove(items.get(show_tags_row))
-                    if show_tags_row - 1 >= 0:
-                        prev_item = items.get(show_tags_row - 1)
-                        if prev_item:
-                            try:
-                                vt_field = prev_item.getClass().getField("viewType")
-                                vt_field.setAccessible(True)
-                                vt = vt_field.getInt(prev_item)
-                                if vt in (3, 6):
-                                    items.remove(show_tags_row - 1)
-                            except Exception:
-                                pass
+                    # Remove the showTagsRow item and its following shadow item by int index
+                    items.remove(int(show_tags_row))
+                    if show_tags_row < items.size():
+                        items.remove(int(show_tags_row))
 
                     show_tags_row_field.setInt(instance, jint(-1))
                     try:
@@ -186,66 +161,142 @@ class FiltersSetupActivityUpdateRowsHook(BaseHook):
             pass
 
 
+def _get_item_view_type(item) -> int:
+    if item is None:
+        return -1
+    try:
+        val = getattr(item, "viewType", None)
+        if val is not None:
+            return int(val)
+    except Exception:
+        pass
+    try:
+        cls = item.getClass()
+        while cls is not None:
+            try:
+                field = cls.getDeclaredField("viewType")
+                field.setAccessible(True)
+                return int(field.getInt(item))
+            except Exception:
+                pass
+            try:
+                cls = cls.getSuperclass()
+            except Exception:
+                break
+    except Exception:
+        pass
+    return -1
+
+
+def _get_item_text(item) -> str:
+    if item is None:
+        return ""
+    try:
+        val = getattr(item, "text", None)
+        if val is not None:
+            return str(val)
+    except Exception:
+        pass
+    try:
+        cls = item.getClass()
+        while cls is not None:
+            try:
+                field = cls.getDeclaredField("text")
+                field.setAccessible(True)
+                val = field.get(item)
+                if val is not None:
+                    return str(val)
+            except Exception:
+                pass
+            try:
+                cls = cls.getSuperclass()
+            except Exception:
+                break
+    except Exception:
+        pass
+    return ""
+
+
 class FilterCreateActivityUpdateRowsHook(BaseHook):
     def after_hooked_method(self, param):
         if not self.plugin.get_setting(Keys.hide_premium_features, False):
             return
         instance = param.thisObject
+        if not instance:
+            return
         try:
             clazz = instance.getClass()
-            items_field = clazz.getDeclaredField("items")
-            items_field.setAccessible(True)
+            items_field = None
+            cls = clazz
+            while cls is not None:
+                try:
+                    items_field = cls.getDeclaredField("items")
+                    items_field.setAccessible(True)
+                    break
+                except Exception:
+                    cls = cls.getSuperclass()
+
+            if not items_field:
+                return
+
             items = items_field.get(instance)
-            if items:
-                vt_preview = 9
-                vt_color = 10
-                try:
-                    f_preview = clazz.getDeclaredField("VIEW_TYPE_HEADER_COLOR_PREVIEW")
-                    f_preview.setAccessible(True)
-                    val = f_preview.get(None)
-                    if val is not None:
-                        vt_preview = int(val)
-                except Exception:
-                    pass
-                try:
-                    f_color = clazz.getDeclaredField("VIEW_TYPE_COLOR")
-                    f_color.setAccessible(True)
-                    val = f_color.get(None)
-                    if val is not None:
-                        vt_color = int(val)
-                except Exception:
-                    pass
+            if not items:
+                return
 
-                LocaleController = find_class("org.telegram.messenger.LocaleController")
-                R = find_class("org.telegram.messenger.R")
-                if LocaleController is not None and R is not None:
+            vt_preview = 9
+            vt_color = 10
+            try:
+                f_preview = clazz.getDeclaredField("VIEW_TYPE_HEADER_COLOR_PREVIEW")
+                f_preview.setAccessible(True)
+                val = f_preview.get(None)
+                if val is not None:
+                    vt_preview = int(val)
+            except Exception:
+                pass
+            try:
+                f_color = clazz.getDeclaredField("VIEW_TYPE_COLOR")
+                f_color.setAccessible(True)
+                val = f_color.get(None)
+                if val is not None:
+                    vt_color = int(val)
+            except Exception:
+                pass
+
+            LocaleController = find_class("org.telegram.messenger.LocaleController")
+            R = find_class("org.telegram.messenger.R")
+            info_str = ""
+            if LocaleController is not None and R is not None:
+                try:
                     info_str = str(LocaleController.getString("FolderTagColorInfo", R.string.FolderTagColorInfo))
-                else:
-                    info_str = ""
+                except Exception:
+                    pass
 
-                i = items.size() - 1
-                while i >= 0:
-                    item = items.get(i)
-                    if item:
-                        view_type_field = item.getClass().getField("viewType")
-                        view_type_field.setAccessible(True)
-                        view_type = view_type_field.getInt(item)
-
-                        if view_type in (vt_preview, vt_color):
+            i = items.size() - 1
+            while i >= 0:
+                item = items.get(i)
+                if item:
+                    view_type = _get_item_view_type(item)
+                    if view_type in (vt_preview, vt_color):
+                        items.remove(i)
+                    elif view_type in (0, 3, 6):  # VIEW_TYPE_HEADER = 0, SHADOW = 3, SHADOW_TEXT = 6
+                        text_str = _get_item_text(item)
+                        if text_str and (
+                            (info_str and info_str in text_str)
+                            or "цвет тега" in text_str.lower()
+                            or "tag color" in text_str.lower()
+                            or "folder tag" in text_str.lower()
+                        ):
                             items.remove(i)
-                        elif view_type in (3, 6):  # VIEW_TYPE_SHADOW = 3, VIEW_TYPE_SHADOW_TEXT = 6
-                            text_field = item.getClass().getField("text")
-                            text_field.setAccessible(True)
-                            text = text_field.get(item)
-                            if text and str(text) == info_str:
-                                items.remove(i)
-                    i -= 1
+                i -= 1
 
+            try:
                 adapter_field = clazz.getDeclaredField("adapter")
                 adapter_field.setAccessible(True)
                 adapter = adapter_field.get(instance)
                 if adapter:
                     adapter.notifyDataSetChanged()
+            except Exception:
+                pass
         except Exception:
             pass
 
@@ -285,7 +336,8 @@ class ListAdapterOnBindViewHolderHook(BaseHook):
             view = holder.itemView
             if view is not None:
                 class_name = view.getClass().getName()
-                if "HeaderCellColorPreview" in class_name or "PeerColorGrid" in class_name:
+                view_type = holder.getItemViewType()
+                if view_type in (9, 10) or "HeaderCellColorPreview" in class_name or "PeerColorGrid" in class_name:
                     view.setVisibility(8)
                     lp = view.getLayoutParams()
                     if lp is not None:
@@ -294,8 +346,7 @@ class ListAdapterOnBindViewHolderHook(BaseHook):
                         view.setLayoutParams(lp)
                     return
 
-                view_type = holder.getItemViewType()
-                if view_type in (3, 6):
+                if view_type in (0, 3, 6):
                     adapter_instance = param.thisObject
                     outer_field = adapter_instance.getClass().getDeclaredField("this$0")
                     outer_field.setAccessible(True)
@@ -309,21 +360,15 @@ class ListAdapterOnBindViewHolderHook(BaseHook):
                         if items and position < items.size():
                             item = items.get(position)
                             if item:
-                                text_field = item.getClass().getField("text")
-                                text_field.setAccessible(True)
-                                text = text_field.get(item)
-                                if text:
-                                    LocaleController = find_class("org.telegram.messenger.LocaleController")
-                                    R = find_class("org.telegram.messenger.R")
-                                    if LocaleController is not None and R is not None:
-                                        info_str = str(LocaleController.getString("FolderTagColorInfo", R.string.FolderTagColorInfo))
-                                        if str(text) == info_str:
-                                            view.setVisibility(8)
-                                            lp = view.getLayoutParams()
-                                            if lp is not None:
-                                                lp.height = 0
-                                                lp.width = 0
-                                                view.setLayoutParams(lp)
+                                text_str = _get_item_text(item)
+                                text_lower = text_str.lower() if text_str else ""
+                                if text_lower and ("цвет тега" in text_lower or "tag color" in text_lower or "folder tag" in text_lower):
+                                    view.setVisibility(8)
+                                    lp = view.getLayoutParams()
+                                    if lp is not None:
+                                        lp.height = 0
+                                        lp.width = 0
+                                        view.setLayoutParams(lp)
         except Exception:
             pass
 
@@ -344,12 +389,13 @@ class MessagesControllerConstructorHook(BaseHook):
     def after_hooked_method(self, param):
         if self.plugin.get_setting(Keys.hide_premium_features, False):
             instance = param.thisObject
-            try:
-                field = instance.getClass().getField("folderTags")
-                field.setAccessible(True)
-                field.setBoolean(instance, False)
-            except Exception:
-                pass
+            if instance:
+                try:
+                    field = instance.getClass().getDeclaredField("folderTags")
+                    field.setAccessible(True)
+                    field.setBoolean(instance, False)
+                except Exception:
+                    pass
 
 
 class MessagesControllerSetFolderTagsHook(BaseHook):
@@ -359,6 +405,29 @@ class MessagesControllerSetFolderTagsHook(BaseHook):
                 param.args[0] = False
             except Exception:
                 pass
+            instance = param.thisObject
+            if instance:
+                try:
+                    field = instance.getClass().getDeclaredField("folderTags")
+                    field.setAccessible(True)
+                    field.setBoolean(instance, False)
+                except Exception:
+                    pass
+
+
+class DialogCellTagsUpdateHook(BaseHook):
+    def before_hooked_method(self, param):
+        if not self.plugin.get_setting(Keys.hide_premium_features, False):
+            return
+        obj = param.thisObject
+        if obj:
+            try:
+                tags = getattr(obj, "tags", None)
+                if tags:
+                    tags.clear()
+            except Exception:
+                pass
+        param.setResult(False)
 
 
 class FilterCreateActivityConstructorHook(BaseHook):
@@ -532,7 +601,7 @@ def register_hide_premium_features(plugin) -> None:
                     try:
                         instance = MessagesController.getInstance(i)
                         if instance:
-                            field = instance.getClass().getField("folderTags")
+                            field = instance.getClass().getDeclaredField("folderTags")
                             field.setAccessible(True)
                             field.setBoolean(instance, False)
                     except Exception:
@@ -580,5 +649,13 @@ def register_hide_premium_features(plugin) -> None:
         if ListAdapter:
             plugin.hook_all_methods(ListAdapter, "onCreateViewHolder", ListAdapterOnCreateViewHolderHook(plugin))
             plugin.hook_all_methods(ListAdapter, "onBindViewHolder", ListAdapterOnBindViewHolderHook(plugin))
+    except Exception:
+        pass
+
+    # 7. Folder tags rendering on chat cells: DialogCellTags
+    try:
+        DialogCellTags = find_class("org.telegram.ui.Components.DialogCellTags")
+        if DialogCellTags:
+            plugin.hook_all_methods(DialogCellTags, "update", DialogCellTagsUpdateHook(plugin))
     except Exception:
         pass
