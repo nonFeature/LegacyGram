@@ -4,36 +4,28 @@ from hook_utils import find_class, get_private_field
 from LiteGram.data.constants import Keys
 from LiteGram.utils.xposed_utils import BaseHook
 
-"""
-A LITTLE EXPLANATION
-There's a separate code paths for addSubItem and lazilyAddSubItems
-addSubItem(id, ...) -> creates view -> adds to popupLayout -> returns View
-    If we return null: caller stores null -> later setVisibility() from showSubItem -> app crashed
-
-lazilyAddSubItem(id, ...) -> stores in lazyList -> later layoutLazyItems() creates view
-    If we return null: lazyMap has null -> ... -> crashed
-
-So we just View.GONE, instead setResult(None)
-
-We also hook setSubItemShown to remove some elements, that sets visibility to true
-And hook for topics (boost group button, report button)
-"""
-
-# from ProfileActivity class
-CALL_ITEM = 15  # Start Live Stream / Video Chat | NOT CALLS IN DM!
-GIFT_PREMIUM = 38
-CHANNEL_STORIES = 39  # Archived Stories
+# ProfileActivity item IDs
 ADD_SHORTCUT_PROFILE = 14  # Add to home screen
+CALL_ITEM = 15  # Start Live Stream / Video Chat
+GIFT_PREMIUM = 38  # Send Gift
+CHANNEL_STORIES = 39  # Archived Stories
+REPORT_PROFILE = 24  # Report Bot in profile
 
-# from ChatActivity class
-ADD_SHORTCUT_CHAT = 24
-BOOST_GROUP = 29
+# ChatActivity item IDs
+CLEAR_HISTORY_CHAT = 15  # Clear History / Clear All History in chat
+REPORT_CHAT = 21  # Report chat / bot
+ADD_SHORTCUT_CHAT = 24  # Add to home screen in chat
+BOOST_GROUP = 29  # Boost group
 
-# from TopicsFragment class
-BOOST_GROUP_TOPIC = 14
+# DialogsActivity / Popup item IDs
+CLEAR_HISTORY_DIALOGS = 103  # Clear History in dialogs list
 
 _ITEM_KEY_MAP = {
     CALL_ITEM: Keys.hide_action_bar_live_stream,
+    CLEAR_HISTORY_CHAT: Keys.hide_action_bar_clear_history,
+    CLEAR_HISTORY_DIALOGS: Keys.hide_action_bar_clear_history,
+    REPORT_CHAT: Keys.hide_action_bar_report,
+    REPORT_PROFILE: Keys.hide_action_bar_report,
     GIFT_PREMIUM: Keys.hide_action_bar_send_gift,
     CHANNEL_STORIES: Keys.hide_action_bar_archived_stories,
     ADD_SHORTCUT_PROFILE: Keys.hide_action_bar_add_shortcut,
@@ -41,79 +33,20 @@ _ITEM_KEY_MAP = {
     BOOST_GROUP: Keys.hide_action_bar_boost_group,
 }
 
-R_drawable = find_class("org.telegram.messenger.R$drawable")
-MSG_REPORT_ID = getattr(R_drawable, "msg_report", -1) if R_drawable else -1
-MSG_CLEAR_ID = getattr(R_drawable, "msg_clear", -1) if R_drawable else -1
-
-
-def _is_clear_history(args) -> bool:
-    if not args:
-        return False
-    item_id = args[0]
-
-    if len(args) > 1 and MSG_CLEAR_ID > 0 and args[1] == MSG_CLEAR_ID:
-        return True
-
-    if len(args) > 2 and args[2] is not None:
-        try:
-            LocaleController = find_class("org.telegram.messenger.LocaleController")
-            R = find_class("org.telegram.messenger.R")
-            if LocaleController and R:
-                s1 = str(LocaleController.getString("ClearHistory", R.string.ClearHistory))
-                s2 = str(LocaleController.getString("ClearAllHistory", R.string.ClearAllHistory))
-                txt = str(args[2])
-                if txt == s1 or txt == s2:
-                    return True
-        except Exception:
-            pass
-
-    if item_id in (15, 103):
-        return True
-
-    return False
-
-
-def _is_report(args) -> bool:
-    if not args:
-        return False
-    item_id = args[0]
-
-    if len(args) > 1 and MSG_REPORT_ID > 0 and args[1] == MSG_REPORT_ID:
-        return True
-
-    if len(args) > 2 and args[2] is not None:
-        try:
-            LocaleController = find_class("org.telegram.messenger.LocaleController")
-            R = find_class("org.telegram.messenger.R")
-            if LocaleController and R:
-                s1 = str(LocaleController.getString("ReportChat", R.string.ReportChat))
-                s2 = str(LocaleController.getString("Report", R.string.Report))
-                txt = str(args[2])
-                if txt == s1 or txt == s2:
-                    return True
-        except Exception:
-            pass
-
-    if item_id == 21:
-        return True
-
-    return False
-
 
 def _should_hide_menu_item(plugin, args) -> bool:
     if not args:
         return False
-
-    if _is_clear_history(args):
-        return bool(plugin.get_setting(Keys.hide_action_bar_clear_history, False))
-
-    if _is_report(args):
-        return bool(plugin.get_setting(Keys.hide_action_bar_report, False))
-
     item_id = args[0]
+    if not isinstance(item_id, int):
+        return False
+
     if item_id == 15:
-        # Item 15 is clearHistoryItem in ChatActivity (groups & DMs) and CALL_ITEM in ProfileActivity
         if plugin.get_setting(Keys.hide_action_bar_clear_history, False) or plugin.get_setting(Keys.hide_action_bar_live_stream, False):
+            return True
+
+    if item_id == 24:
+        if plugin.get_setting(Keys.hide_action_bar_report, False) or plugin.get_setting(Keys.hide_action_bar_add_shortcut, False):
             return True
 
     if item_id in _ITEM_KEY_MAP:
@@ -153,12 +86,24 @@ class ActionBarMenuItemSetSubItemShownHook(BaseHook):
                 pass
 
 
-class ItemOptionsAddHook(BaseHook):
-    def before_hooked_method(self, param):
+class ChatActivityCheckActionBarMenuHook(BaseHook):
+    def after_hooked_method(self, param):
         if not self.plugin.get_setting(Keys.hide_action_bar_clear_history, False):
             return
-        if _is_clear_history(param.args):
-            param.setResult(param.thisObject)
+        chat_activity = param.thisObject
+        if chat_activity is not None:
+            try:
+                clear_history_item = get_private_field(chat_activity, "clearHistoryItem")
+                if clear_history_item is not None:
+                    try:
+                        clear_history_item.visibility = 8
+                    except Exception:
+                        pass
+                    view = getattr(clear_history_item, "view", None)
+                    if view is not None:
+                        view.setVisibility(8)
+            except Exception:
+                pass
 
 
 class TopicsFragmentUpdateChatInfoHook(BaseHook):
@@ -176,8 +121,8 @@ class TopicsFragmentUpdateChatInfoHook(BaseHook):
 
 def register_action_bar(plugin) -> None:
     ActionBarMenuItem = find_class("org.telegram.ui.ActionBar.ActionBarMenuItem")
+    ChatActivity = find_class("org.telegram.ui.ChatActivity")
     TopicsFragment = find_class("org.telegram.ui.TopicsFragment")
-    ItemOptions = find_class("org.telegram.ui.Components.ItemOptions")
     if ActionBarMenuItem:
         try:
             plugin.hook_all_methods(ActionBarMenuItem, "addSubItem", ActionBarMenuItemAddSubItemHook(plugin))
@@ -191,9 +136,9 @@ def register_action_bar(plugin) -> None:
             plugin.hook_all_methods(ActionBarMenuItem, "setSubItemShown", ActionBarMenuItemSetSubItemShownHook(plugin))
         except Exception:
             pass
-    if ItemOptions:
+    if ChatActivity:
         try:
-            plugin.hook_all_methods(ItemOptions, "add", ItemOptionsAddHook(plugin))
+            plugin.hook_all_methods(ChatActivity, "checkActionBarMenu", ChatActivityCheckActionBarMenuHook(plugin))
         except Exception:
             pass
     if TopicsFragment:
