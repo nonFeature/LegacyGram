@@ -4,7 +4,7 @@
 
 A highly customizable, modular plugin for [exteraGram](https://exteragram.app) based clients designed to **remove paid and bloated features** from the Android Telegram client.
 
-<a href="https://t.me/exteraPluginsSup/789">Download from Official exteraGram Utilities Channel<br><img src="images/exteraUtils.webp" width=40%>
+<a href="https://t.me/exteraPluginsSup/789"><b>Download from Official exteraGram Utilities Channel</b><br><img src="images/exteraUtils.webp" width=45%>
 </a>
 
 ## Screenshots
