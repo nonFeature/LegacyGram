@@ -34,9 +34,35 @@ _ITEM_KEY_MAP = {
 }
 
 
+R_drawable = find_class("org.telegram.messenger.R$drawable") or find_class("com.exteragram.messenger.R$drawable")
+MSG_CLEAR_ID = getattr(R_drawable, "msg_clear", -1) if R_drawable else -1
+MSG_DELETE_ID = getattr(R_drawable, "msg_delete", -1) if R_drawable else -1
+
+
+def _is_clear_history(args) -> bool:
+    if not args:
+        return False
+    item_id = args[0] if len(args) > 0 else -1
+
+    if isinstance(item_id, int) and item_id in (15, 103):
+        return True
+
+    if len(args) > 1:
+        icon_id = args[1]
+        if isinstance(icon_id, int) and icon_id > 0:
+            if (MSG_CLEAR_ID > 0 and icon_id == MSG_CLEAR_ID) or (MSG_DELETE_ID > 0 and icon_id == MSG_DELETE_ID):
+                return True
+
+    return False
+
+
 def _should_hide_menu_item(plugin, args) -> bool:
     if not args:
         return False
+
+    if _is_clear_history(args):
+        return bool(plugin.get_setting(Keys.hide_action_bar_clear_history, False))
+
     item_id = args[0]
     if not isinstance(item_id, int):
         return False
@@ -106,6 +132,14 @@ class ChatActivityCheckActionBarMenuHook(BaseHook):
                 pass
 
 
+class ItemOptionsAddHook(BaseHook):
+    def before_hooked_method(self, param):
+        if not self.plugin.get_setting(Keys.hide_action_bar_clear_history, False):
+            return
+        if _is_clear_history(param.args):
+            param.setResult(param.thisObject)
+
+
 class TopicsFragmentUpdateChatInfoHook(BaseHook):
     def after_hooked_method(self, param):
         instance = param.thisObject
@@ -123,6 +157,7 @@ def register_action_bar(plugin) -> None:
     ActionBarMenuItem = find_class("org.telegram.ui.ActionBar.ActionBarMenuItem")
     ChatActivity = find_class("org.telegram.ui.ChatActivity")
     TopicsFragment = find_class("org.telegram.ui.TopicsFragment")
+    ItemOptions = find_class("org.telegram.ui.Components.ItemOptions")
     if ActionBarMenuItem:
         try:
             plugin.hook_all_methods(ActionBarMenuItem, "addSubItem", ActionBarMenuItemAddSubItemHook(plugin))
@@ -139,6 +174,11 @@ def register_action_bar(plugin) -> None:
     if ChatActivity:
         try:
             plugin.hook_all_methods(ChatActivity, "checkActionBarMenu", ChatActivityCheckActionBarMenuHook(plugin))
+        except Exception:
+            pass
+    if ItemOptions:
+        try:
+            plugin.hook_all_methods(ItemOptions, "add", ItemOptionsAddHook(plugin))
         except Exception:
             pass
     if TopicsFragment:
