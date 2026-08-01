@@ -1,5 +1,5 @@
 from android.view import View
-from hook_utils import find_class, get_private_field
+from hook_utils import find_class, get_private_field, set_private_field
 
 from LiteGram.data.constants import Keys
 from LiteGram.utils.xposed_utils import BaseHook
@@ -39,17 +39,59 @@ MSG_CLEAR_ID = getattr(R_drawable, "msg_clear", -1) if R_drawable else -1
 MSG_DELETE_ID = getattr(R_drawable, "msg_delete", -1) if R_drawable else -1
 
 
+def _to_int(val) -> int:
+    if val is None:
+        return -1
+    if isinstance(val, int):
+        return val
+    try:
+        return int(val)
+    except Exception:
+        pass
+    try:
+        return int(str(val))
+    except Exception:
+        pass
+    return -1
+
+
+def _hide_item_or_view(target) -> None:
+    if target is None:
+        return
+    if hasattr(target, "setVisibility"):
+        try:
+            target.setVisibility(View.GONE)
+        except Exception:
+            try:
+                target.setVisibility(8)
+            except Exception:
+                pass
+    try:
+        set_private_field(target, "visibility", 8)
+    except Exception:
+        try:
+            target.visibility = 8
+        except Exception:
+            pass
+    try:
+        inner_view = getattr(target, "view", None)
+        if inner_view is not None:
+            inner_view.setVisibility(View.GONE)
+    except Exception:
+        pass
+
+
 def _is_clear_history(args) -> bool:
     if not args:
         return False
-    item_id = args[0] if len(args) > 0 else -1
+    item_id = _to_int(args[0]) if len(args) > 0 else -1
 
-    if isinstance(item_id, int) and item_id in (15, 103):
+    if item_id in (15, 103):
         return True
 
     if len(args) > 1:
-        icon_id = args[1]
-        if isinstance(icon_id, int) and icon_id > 0:
+        icon_id = _to_int(args[1])
+        if icon_id > 0:
             if (MSG_CLEAR_ID > 0 and icon_id == MSG_CLEAR_ID) or (MSG_DELETE_ID > 0 and icon_id == MSG_DELETE_ID):
                 return True
 
@@ -60,12 +102,12 @@ def _should_hide_menu_item(plugin, args) -> bool:
     if not args:
         return False
 
+    item_id = _to_int(args[0])
+    if item_id < 0:
+        return False
+
     if _is_clear_history(args):
         return bool(plugin.get_setting(Keys.hide_action_bar_clear_history, False))
-
-    item_id = args[0]
-    if not isinstance(item_id, int):
-        return False
 
     if item_id == 15:
         if plugin.get_setting(Keys.hide_action_bar_clear_history, False) or plugin.get_setting(Keys.hide_action_bar_live_stream, False):
@@ -87,7 +129,7 @@ class ActionBarMenuItemAddSubItemHook(BaseHook):
         if result is None or not param.args:
             return
         if _should_hide_menu_item(self.plugin, param.args):
-            result.setVisibility(View.GONE)
+            _hide_item_or_view(result)
 
 
 class ActionBarMenuItemLazilyAddSubItemHook(BaseHook):
@@ -96,7 +138,7 @@ class ActionBarMenuItemLazilyAddSubItemHook(BaseHook):
         if result is None or not param.args:
             return
         if _should_hide_menu_item(self.plugin, param.args):
-            result.setVisibility(View.GONE)
+            _hide_item_or_view(result)
 
 
 # calls showSubItem(id); if show is true
@@ -121,13 +163,7 @@ class ChatActivityCheckActionBarMenuHook(BaseHook):
             try:
                 clear_history_item = get_private_field(chat_activity, "clearHistoryItem")
                 if clear_history_item is not None:
-                    try:
-                        clear_history_item.visibility = 8
-                    except Exception:
-                        pass
-                    view = getattr(clear_history_item, "view", None)
-                    if view is not None:
-                        view.setVisibility(8)
+                    _hide_item_or_view(clear_history_item)
             except Exception:
                 pass
 
@@ -140,17 +176,46 @@ class ItemOptionsAddHook(BaseHook):
             param.setResult(param.thisObject)
 
 
+class ActionBarMenuItemToggleSubMenuHook(BaseHook):
+    def after_hooked_method(self, param):
+        item = param.thisObject
+        if item is None:
+            return
+        try:
+            popup_layout = getattr(item, "popupLayout", None)
+            if popup_layout is None:
+                popup_layout = get_private_field(item, "popupLayout")
+            if popup_layout is not None:
+                child_count = popup_layout.getChildCount()
+                for i in range(child_count):
+                    child = popup_layout.getChildAt(i)
+                    if child is None:
+                        continue
+                    tag = _to_int(child.getTag())
+                    if tag >= 0 and _should_hide_menu_item(self.plugin, (tag,)):
+                        _hide_item_or_view(child)
+
+            lazy_map = get_private_field(item, "lazyMap")
+            if lazy_map is not None:
+                for item_id, lazy_item in lazy_map.items():
+                    pid = _to_int(item_id)
+                    if pid >= 0 and _should_hide_menu_item(self.plugin, (pid,)):
+                        _hide_item_or_view(lazy_item)
+        except Exception:
+            pass
+
+
 class TopicsFragmentUpdateChatInfoHook(BaseHook):
     def after_hooked_method(self, param):
         instance = param.thisObject
         if self.plugin.get_setting(Keys.hide_action_bar_boost_group, False):
             boost_submenu_field = get_private_field(instance, "boostGroupSubmenu")
             if boost_submenu_field is not None:
-                boost_submenu_field.setVisibility(8)
+                _hide_item_or_view(boost_submenu_field)
         if self.plugin.get_setting(Keys.hide_action_bar_report, False):
             report_submenu_field = get_private_field(instance, "reportSubmenu")
             if report_submenu_field is not None:
-                report_submenu_field.setVisibility(8)
+                _hide_item_or_view(report_submenu_field)
 
 
 def register_action_bar(plugin) -> None:
@@ -169,6 +234,10 @@ def register_action_bar(plugin) -> None:
             pass
         try:
             plugin.hook_all_methods(ActionBarMenuItem, "setSubItemShown", ActionBarMenuItemSetSubItemShownHook(plugin))
+        except Exception:
+            pass
+        try:
+            plugin.hook_all_methods(ActionBarMenuItem, "toggleSubMenu", ActionBarMenuItemToggleSubMenuHook(plugin))
         except Exception:
             pass
     if ChatActivity:

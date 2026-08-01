@@ -73,11 +73,11 @@ def register_gift_button(plugin) -> None:
         except Exception:
             pass
 
-    ChatActivityChannelButtonsLayout = find_class("org.telegram.ui.Components.chat.layouts.ChatActivityChannelButtonsLayout")
-    if ChatActivityChannelButtonsLayout:
-        try:
+    try:
+        ChatActivityChannelButtonsLayout = find_class("org.telegram.ui.Components.chat.layouts.ChatActivityChannelButtonsLayout")
+        if ChatActivityChannelButtonsLayout:
             plugin.hook_all_methods(
                 ChatActivityChannelButtonsLayout, "showButton", ChatActivityChannelButtonsLayoutShowButtonHook(plugin, Keys.hide_bottom_gift_button)
             )
-        except Exception:
-            pass
+    except Exception:
+        pass
