@@ -18,7 +18,7 @@ also we hook setChatInfo and setUserInfo which move you to stories tab sometimes
 ... .setInitialTabId(... ? TAB_ARCHIVED_STORIES : TAB_STORIES);
 for weird StoriesCollections logic we just set visibility to false (I'm a little lazy to check they logic, it's working fine)
 
-Also we hook includeStories, isStoriesView, and isArchivedOnlyStoriesView to return False when hide_stories_tab is active,
+Also we hook includeStories and isArchivedOnlyStoriesView to return False when hide_stories_tab is active,
 which prevents story and archived story tabs from being generated in self profile (myProfile) and normal profiles.
 """
 
@@ -66,7 +66,14 @@ class SharedMediaLayoutHook(BaseHook):
             return
 
         try:
-            rebuild_tabs_without_stories(get_private_field(param.thisObject, "scrollSlidingTextTabStrip"))
+            instance = param.thisObject
+            tab_strip = get_private_field(instance, "scrollSlidingTextTabStrip")
+            hide_saved_tabs = bool(self.plugin.get_setting(Keys.hide_gifts_tab, False)) and is_self_profile(instance)
+            rebuild_tabs_without_stories(tab_strip, hide_saved_tabs)
+            if tab_strip is not None and tab_strip.getTabsCount() == 0:
+                clear_empty_media_selection(instance, tab_strip)
+            elif tab_strip is not None:
+                restore_media_page_visibility(instance)
         except Exception:
             pass
 
@@ -120,14 +127,29 @@ def remove_stories(obj: Any):
             set_private_field(obj, "main_tab", None)
 
 
-def rebuild_tabs_without_stories(tab_strip) -> None:
+def is_self_profile(instance) -> bool:
+    try:
+        return bool(instance.isSelf())
+    except Exception:
+        pass
+    try:
+        profile_activity = get_private_field(instance, "profileActivity")
+        return bool(getattr(profile_activity, "myProfile", False))
+    except Exception:
+        return False
+
+
+def rebuild_tabs_without_stories(tab_strip, hide_saved_tabs: bool = False) -> None:
     if tab_strip is None:
         return
-    if not tab_strip.hasTab(8) and not tab_strip.hasTab(9) and not tab_strip.hasTab(13):
+    removable_tab_ids = {8, 9, 13}
+    if hide_saved_tabs:
+        removable_tab_ids.update((11, 12))
+    if not any(tab_strip.hasTab(tab_id) for tab_id in removable_tab_ids):
         return
 
     current_tab_id = tab_strip.getCurrentTabId()
-    removed_tab_ids = {8, 9, 13}
+    removed_tab_ids = removable_tab_ids
     tab_ids = list(tab_strip.getTabIds())
     cached_tabs = tab_strip.removeTabs()
     first_available_tab = None
@@ -157,6 +179,48 @@ def rebuild_tabs_without_stories(tab_strip) -> None:
         tab_strip.selectTabWithId(current_tab_id, 1.0)
 
 
+def clear_empty_media_selection(instance, tab_strip) -> None:
+    """Clear stale media selection after both profile tabs were removed."""
+    try:
+        tab_strip.setInitialTabId(-1)
+    except Exception:
+        pass
+
+    try:
+        media_pages = get_private_field(instance, "mediaPages")
+        saved_container = get_private_field(instance, "savedMessagesContainer")
+        if media_pages is not None:
+            for index in range(2):
+                page = media_pages[index]
+                if page is None:
+                    continue
+                set_private_field(page, "selectedType", -1)
+                if saved_container is not None and saved_container.getParent() == page:
+                    saved_container.chatActivity.onRemoveFromParent()
+                    page.removeView(saved_container)
+                page.setVisibility(8)
+    except Exception:
+        pass
+
+    try:
+        instance.setVisibility(8)
+    except Exception:
+        pass
+
+
+def restore_media_page_visibility(instance) -> None:
+    try:
+        media_pages = get_private_field(instance, "mediaPages")
+        if media_pages is not None:
+            for index in range(2):
+                page = media_pages[index]
+                if page is not None:
+                    page.setVisibility(0)
+        instance.setVisibility(0)
+    except Exception:
+        pass
+
+
 def register_media_layout(plugin) -> None:
     SharedMediaLayout = find_class("org.telegram.ui.Components.SharedMediaLayout")
     if SharedMediaLayout:
@@ -182,7 +246,6 @@ def register_media_layout(plugin) -> None:
         try:
             return_false_hook = ReturnFalseHook(plugin, Keys.hide_stories_tab)
             plugin.hook_all_methods(SharedMediaLayout, "includeStories", return_false_hook)
-            plugin.hook_all_methods(SharedMediaLayout, "isStoriesView", return_false_hook)
             plugin.hook_all_methods(SharedMediaLayout, "isArchivedOnlyStoriesView", return_false_hook)
         except Exception:
             pass
