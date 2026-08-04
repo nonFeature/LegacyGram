@@ -89,10 +89,14 @@ def _is_clear_history(args) -> bool:
     if item_id in (15, 103):
         return True
 
+    # Method 2: by icon — msg_clear always, msg_delete only for known ids (15/103),
+    # to avoid hiding ClearLocalDatabase (item_id=3) and other items with msg_delete
     if len(args) > 1:
         icon_id = _to_int(args[1])
         if icon_id > 0:
-            if (MSG_CLEAR_ID > 0 and icon_id == MSG_CLEAR_ID) or (MSG_DELETE_ID > 0 and icon_id == MSG_DELETE_ID):
+            if MSG_CLEAR_ID > 0 and icon_id == MSG_CLEAR_ID:
+                return True
+            if MSG_DELETE_ID > 0 and icon_id == MSG_DELETE_ID and item_id in (15, 103):
                 return True
 
     return False
