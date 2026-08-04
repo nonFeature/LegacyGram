@@ -13,13 +13,13 @@ STRINGS = {
         "settings_options": "Меню настроек",
         "manage_settings_options": "Настройка меню настроек",
         "switch_all": "Переключить все",
-        "hide_premium_row": "Скрыть \"Telegram Premium\"",
-        "hide_stars_row": "Скрыть \"Мои Звёзды\"",
-        "hide_ton_row": "Скрыть \"Мои TON\"",
-        "hide_wallet_row": "Скрыть \"Wallet\"",
-        "hide_business_row": "Скрыть \"Telegram для бизнеса\"",
-        "hide_send_a_gift_row": "Скрыть \"Отправить подарок\"",
-        "hide_help_section": "Скрыть раздел \"Помощь\"",
+        "hide_premium_row": "Скрыть «Telegram Premium»",
+        "hide_stars_row": "Скрыть «Мои Звёзды»",
+        "hide_ton_row": "Скрыть «Мои TON»",
+        "hide_wallet_row": "Скрыть «Wallet»",
+        "hide_business_row": "Скрыть «Telegram для бизнеса»",
+        "hide_send_a_gift_row": "Скрыть «Отправить подарок»",
+        "hide_help_section": "Скрыть раздел «Помощь»",
 
         # --- Drawer Options ---
         "drawer_options": "Боковое меню",
@@ -30,7 +30,7 @@ STRINGS = {
         "hide_stories": "Скрыть Истории",
         "hide_action_bar_status": "Скрыть статус",
         "hide_greeting_button": "Скрыть промо Telegram Business в новых чатах",
-        "hide_greeting_button_sub": "Убирает кнопку с текстом \"имя установил(а) это сообщение для всех новых чатов\"",
+        "hide_greeting_button_sub": "Убирает кнопку с текстом «имя установил(а) это сообщение для всех новых чатов»",
 
         # --- Profile Buttons ---
         "profile_buttons": "Кнопки в профиле",
@@ -60,13 +60,13 @@ STRINGS = {
 
         # --- Action Bar ---
         "action_bar": "Три точки",
-        "hide_action_bar_live_stream": "Скрыть \"Начать трансляцию\" и \"Видеочат\"",
-        "hide_action_bar_archived_stories": "Скрыть \"Архив историй\"",
-        "hide_action_bar_send_gift": "Скрыть \"Отправить подарок\"",
-        "hide_action_bar_boost_group": "Скрыть \"Голоса\"",
-        "hide_action_bar_add_shortcut": "Скрыть \"Создать ярлык\"",
-        "hide_action_bar_report": "Скрыть \"Пожаловаться\"",
-        "hide_action_bar_clear_history": "Скрыть \"Очистить историю\"",
+        "hide_action_bar_live_stream": "Скрыть «Начать трансляцию» и «Видеочат»",
+        "hide_action_bar_archived_stories": "Скрыть «Архив историй»",
+        "hide_action_bar_send_gift": "Скрыть «Отправить подарок»",
+        "hide_action_bar_boost_group": "Скрыть «Голоса»",
+        "hide_action_bar_add_shortcut": "Скрыть «Создать ярлык»",
+        "hide_action_bar_report": "Скрыть «Пожаловаться»",
+        "hide_action_bar_clear_history": "Скрыть «Очистить историю»",
 
         # --- Gifts Related ---
         "gifts": "Элементы чата",
@@ -100,7 +100,7 @@ STRINGS = {
 
         # --- AI Features ---
         "ai_features_header": "ИИ-Функции",
-        "hide_ai_button": "Скрыть кнопку \"AI\" в поле ввода",
+        "hide_ai_button": "Скрыть кнопку «AI» в поле ввода",
         "hide_ai_summarize": "Скрыть кнопку саммари",
 
         # --- About Plugin ---
@@ -126,13 +126,13 @@ STRINGS = {
         "settings_options": "Settings Options",
         "manage_settings_options": "Manage Settings Options",
         "switch_all": "Switch All",
-        "hide_premium_row": "Hide \"Telegram Premium\"",
-        "hide_stars_row": "Hide \"My Stars\"",
-        "hide_ton_row": "Hide \"My TON\"",
-        "hide_wallet_row": "Hide \"Wallet\"",
-        "hide_business_row": "Hide \"Telegram Business\"",
-        "hide_send_a_gift_row": "Hide \"Send a Gift\"",
-        "hide_help_section": "Hide \"Help\" Section",
+        "hide_premium_row": "Hide «Telegram Premium»",
+        "hide_stars_row": "Hide «My Stars»",
+        "hide_ton_row": "Hide «My TON»",
+        "hide_wallet_row": "Hide «Wallet»",
+        "hide_business_row": "Hide «Telegram Business»",
+        "hide_send_a_gift_row": "Hide «Send a Gift»",
+        "hide_help_section": "Hide «Help» Section",
 
         # --- Drawer Options ---
         "drawer_options": "Drawer Options",
@@ -143,7 +143,7 @@ STRINGS = {
         "hide_stories": "Hide Stories",
         "hide_action_bar_status": "Hide Status",
         "hide_greeting_button": "Hide Telegram Business Promo in Empty Chats",
-        "hide_greeting_button_sub": "Removes button with text \"name added the message above for all empty chats\"",
+        "hide_greeting_button_sub": "Removes button with text «name added the message above for all empty chats»",
 
         # --- Profile Buttons ---
         "profile_buttons": "Profile Buttons",
@@ -173,13 +173,13 @@ STRINGS = {
 
         # --- Action Bar ---
         "action_bar": "Three dots",
-        "hide_action_bar_live_stream": "Hide \"Start Live Stream\" & \"Start Voice Chat\"",
-        "hide_action_bar_archived_stories": "Hide \"Archived Stories\"",
-        "hide_action_bar_send_gift": "Hide \"Send Gift\"",
-        "hide_action_bar_boost_group": "Hide \"Boost Group\"",
-        "hide_action_bar_add_shortcut": "Hide \"Add to Home Screen\"",
-        "hide_action_bar_report": "Hide \"Report\"",
-        "hide_action_bar_clear_history": "Hide \"Clear History\"",
+        "hide_action_bar_live_stream": "Hide «Start Live Stream» & «Start Voice Chat»",
+        "hide_action_bar_archived_stories": "Hide «Archived Stories»",
+        "hide_action_bar_send_gift": "Hide «Send Gift»",
+        "hide_action_bar_boost_group": "Hide «Boost Group»",
+        "hide_action_bar_add_shortcut": "Hide «Add to Home Screen»",
+        "hide_action_bar_report": "Hide «Report»",
+        "hide_action_bar_clear_history": "Hide «Clear History»",
 
         # --- Gifts Related ---
         "gifts": "Chat Elements",
@@ -213,7 +213,7 @@ STRINGS = {
 
         # --- AI Features ---
         "ai_features_header": "AI Features",
-        "hide_ai_button": "Hide \"AI\" Button in Message Input",
+        "hide_ai_button": "Hide «AI» Button in Message Input",
         "hide_ai_summarize": "Hide Summarize Button",
 
         # --- About Plugin ---
