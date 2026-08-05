@@ -60,33 +60,53 @@ class SharedMediaLayoutHook(BaseHook):
                 remove_stories(target)
 
     def after_hooked_method(self, param):
+        gifts = bool(self.plugin.get_setting(Keys.hide_gifts_tab, False))
         stories = bool(self.plugin.get_setting(Keys.hide_stories_tab, False))
 
-        if not stories:
+        if not gifts and not stories:
             return
 
         try:
             instance = param.thisObject
             tab_strip = get_private_field(instance, "scrollSlidingTextTabStrip")
-            hide_saved_tabs = bool(self.plugin.get_setting(Keys.hide_gifts_tab, False)) and is_self_profile(instance)
-            rebuild_tabs_without_stories(tab_strip, hide_saved_tabs)
+            is_self = is_self_profile(instance)
+
+            removable_tab_ids = set()
+            if stories:
+                removable_tab_ids.update((8, 9, 13))
+            if gifts:
+                removable_tab_ids.add(14)
+            if gifts and stories and is_self:
+                removable_tab_ids.update((11, 12))
+
+            rebuild_tabs_without_stories(tab_strip, removable_tab_ids)
+
             if tab_strip is not None and tab_strip.getTabsCount() == 0:
                 clear_empty_media_selection(instance, tab_strip)
             elif tab_strip is not None:
                 restore_media_page_visibility(instance)
+                ensure_valid_tab_selected(instance)
         except Exception:
             pass
 
 
 class SharedMediaLayoutSetInfoHook(BaseHook):
     def before_hooked_method(self, param):
-        if not self.is_enabled():
+        gifts = bool(self.plugin.get_setting(Keys.hide_gifts_tab, False))
+        stories = bool(self.plugin.get_setting(Keys.hide_stories_tab, False))
+
+        if not gifts and not stories:
             return
+
         try:
             info_obj = param.args[0]
         except IndexError:
             return
-        remove_stories(info_obj)
+
+        if gifts:
+            remove_gifts(info_obj)
+        if stories:
+            remove_stories(info_obj)
 
 
 class ReturnFalseHook(BaseHook):
@@ -139,12 +159,11 @@ def is_self_profile(instance) -> bool:
         return False
 
 
-def rebuild_tabs_without_stories(tab_strip, hide_saved_tabs: bool = False) -> None:
+def rebuild_tabs_without_stories(tab_strip, removable_tab_ids: set[int] | None = None) -> None:
     if tab_strip is None:
         return
-    removable_tab_ids = {8, 9, 13}
-    if hide_saved_tabs:
-        removable_tab_ids.update((11, 12))
+    if removable_tab_ids is None:
+        removable_tab_ids = {8, 9, 13}
     if not any(tab_strip.hasTab(tab_id) for tab_id in removable_tab_ids):
         return
 
@@ -177,6 +196,29 @@ def rebuild_tabs_without_stories(tab_strip, hide_saved_tabs: bool = False) -> No
         tab_strip.scrollTo(first_available_tab)
     else:
         tab_strip.selectTabWithId(current_tab_id, 1.0)
+
+
+def ensure_valid_tab_selected(instance) -> None:
+    try:
+        tab_strip = get_private_field(instance, "scrollSlidingTextTabStrip")
+        if tab_strip is None or tab_strip.getTabsCount() == 0:
+            return
+
+        current_tab_id = tab_strip.getCurrentTabId()
+        if not tab_strip.hasTab(current_tab_id):
+            first_tab_id = tab_strip.getFirstTabId()
+            if first_tab_id != -1:
+                tab_strip.setInitialTabId(first_tab_id)
+                current_tab_id = first_tab_id
+
+        media_pages = get_private_field(instance, "mediaPages")
+        if media_pages is not None and len(media_pages) > 0 and media_pages[0] is not None:
+            current_selected = media_pages[0].selectedType
+            if current_selected != current_tab_id and current_tab_id != -1:
+                set_private_field(media_pages[0], "selectedType", jint(current_tab_id))
+                instance.switchToCurrentSelectedMode(False)
+    except Exception:
+        pass
 
 
 def clear_empty_media_selection(instance, tab_strip) -> None:
@@ -237,7 +279,7 @@ def register_media_layout(plugin) -> None:
             pass
 
         try:
-            info_hook = SharedMediaLayoutSetInfoHook(plugin, Keys.hide_stories_tab)
+            info_hook = SharedMediaLayoutSetInfoHook(plugin)
             plugin.hook_all_methods(SharedMediaLayout, "setChatInfo", info_hook)
             plugin.hook_all_methods(SharedMediaLayout, "setUserInfo", info_hook)
         except Exception:
