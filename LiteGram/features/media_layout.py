@@ -31,6 +31,12 @@ class SharedMediaLayoutHook(BaseHook):
         super().__init__(plugin)
         self.is_constructor = is_constructor
 
+    def _get_active_flags(self) -> tuple[bool, bool]:
+        return (
+            bool(self.plugin.get_setting(Keys.hide_gifts_tab, False)),
+            bool(self.plugin.get_setting(Keys.hide_stories_tab, False)),
+        )
+
     def _get_info_objects(self, param) -> tuple[Any, Any]:
         if self.is_constructor:
             try:
@@ -38,31 +44,25 @@ class SharedMediaLayoutHook(BaseHook):
             except IndexError:
                 return None, None
         else:
-            # updateTabs: info stored in instance fields
             instance = param.thisObject
-            chat_info = get_private_field(instance, "info")  # TLRPC.ChatFull
-            user_info = get_private_field(instance, "userInfo")  # TLRPC.UserFull
+            chat_info = get_private_field(instance, "info")
+            user_info = get_private_field(instance, "userInfo")
             return chat_info, user_info
 
     def before_hooked_method(self, param):
-        gifts = bool(self.plugin.get_setting(Keys.hide_gifts_tab, False))
-        stories = bool(self.plugin.get_setting(Keys.hide_stories_tab, False))
-
+        gifts, stories = self._get_active_flags()
         if not gifts and not stories:
             return
 
         chat_info, user_info = self._get_info_objects(param)
-
-        for target in [chat_info, user_info]:
+        for target in (chat_info, user_info):
             if gifts:
                 remove_gifts(target)
             if stories:
                 remove_stories(target)
 
     def after_hooked_method(self, param):
-        gifts = bool(self.plugin.get_setting(Keys.hide_gifts_tab, False))
-        stories = bool(self.plugin.get_setting(Keys.hide_stories_tab, False))
-
+        gifts, stories = self._get_active_flags()
         if not gifts and not stories:
             return
 
@@ -79,13 +79,14 @@ class SharedMediaLayoutHook(BaseHook):
             if gifts and stories and is_self:
                 removable_tab_ids.update((11, 12))
 
-            rebuild_tabs_without_stories(tab_strip, removable_tab_ids)
+            rebuild_profile_tabs(tab_strip, removable_tab_ids)
 
-            if tab_strip is not None and tab_strip.getTabsCount() == 0:
-                clear_empty_media_selection(instance, tab_strip)
-            elif tab_strip is not None:
-                restore_media_page_visibility(instance)
-                ensure_valid_tab_selected(instance)
+            if tab_strip is not None:
+                if tab_strip.getTabsCount() == 0:
+                    clear_empty_media_selection(instance, tab_strip)
+                else:
+                    restore_media_page_visibility(instance)
+                    ensure_valid_tab_selected(instance, tab_strip)
         except Exception:
             pass
 
@@ -159,22 +160,19 @@ def is_self_profile(instance) -> bool:
         return False
 
 
-def rebuild_tabs_without_stories(tab_strip, removable_tab_ids: set[int] | None = None) -> None:
-    if tab_strip is None:
+def rebuild_profile_tabs(tab_strip, removable_tab_ids: set[int] | None = None) -> None:
+    if tab_strip is None or not removable_tab_ids:
         return
-    if removable_tab_ids is None:
-        removable_tab_ids = {8, 9, 13}
     if not any(tab_strip.hasTab(tab_id) for tab_id in removable_tab_ids):
         return
 
     current_tab_id = tab_strip.getCurrentTabId()
-    removed_tab_ids = removable_tab_ids
     tab_ids = list(tab_strip.getTabIds())
     cached_tabs = tab_strip.removeTabs()
     first_available_tab = None
 
     for tab_id in tab_ids:
-        if tab_id in removed_tab_ids:
+        if tab_id in removable_tab_ids:
             continue
 
         view = cached_tabs.get(tab_id)
@@ -192,15 +190,16 @@ def rebuild_tabs_without_stories(tab_strip, removable_tab_ids: set[int] | None =
     if first_available_tab is None:
         return
 
-    if current_tab_id in removed_tab_ids:
+    if current_tab_id in removable_tab_ids:
         tab_strip.scrollTo(first_available_tab)
     else:
         tab_strip.selectTabWithId(current_tab_id, 1.0)
 
 
-def ensure_valid_tab_selected(instance) -> None:
+def ensure_valid_tab_selected(instance, tab_strip=None) -> None:
     try:
-        tab_strip = get_private_field(instance, "scrollSlidingTextTabStrip")
+        if tab_strip is None:
+            tab_strip = get_private_field(instance, "scrollSlidingTextTabStrip")
         if tab_strip is None or tab_strip.getTabsCount() == 0:
             return
 

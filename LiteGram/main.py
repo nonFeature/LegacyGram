@@ -143,7 +143,7 @@ class LiteGramPlugin(BasePlugin):
 
     @staticmethod
     def _sanitize_gifts_payload(obj, visited=None, depth=0):
-        if obj is None or depth > 4:
+        if obj is None or depth > 4 or isinstance(obj, (int, float, str, bool, bytes)):
             return
         if visited is None:
             visited = set()
