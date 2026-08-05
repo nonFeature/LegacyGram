@@ -62,31 +62,25 @@ class SharedMediaLayoutHook(BaseHook):
                 remove_stories(target)
 
     def after_hooked_method(self, param):
-        gifts, stories = self._get_active_flags()
-        if not gifts and not stories:
+        stories = bool(self.plugin.get_setting(Keys.hide_stories_tab, False))
+        if not stories:
             return
-
         try:
             instance = param.thisObject
-            tab_strip = get_private_field(instance, "scrollSlidingTextTabStrip")
-            is_self = is_self_profile(instance)
-
-            removable_tab_ids = set()
-            if stories:
-                removable_tab_ids.update((8, 9, 13))
-            if gifts:
-                removable_tab_ids.add(14)
-            if gifts and stories and is_self:
+            if not is_self_profile(instance):
+                return
+            gifts = bool(self.plugin.get_setting(Keys.hide_gifts_tab, False))
+            hide_saved_tabs = gifts and is_self_profile(instance)
+            removable_tab_ids = {8, 9, 13}
+            if hide_saved_tabs:
                 removable_tab_ids.update((11, 12))
 
+            tab_strip = get_private_field(instance, "scrollSlidingTextTabStrip")
             rebuild_profile_tabs(tab_strip, removable_tab_ids)
-
-            if tab_strip is not None:
-                if tab_strip.getTabsCount() == 0:
-                    clear_empty_media_selection(instance, tab_strip)
-                else:
-                    restore_media_page_visibility(instance)
-                    ensure_valid_tab_selected(instance, tab_strip)
+            if tab_strip is not None and tab_strip.getTabsCount() == 0:
+                clear_empty_media_selection(instance, tab_strip)
+            elif tab_strip is not None:
+                restore_media_page_visibility(instance)
         except Exception:
             pass
 
@@ -196,44 +190,7 @@ def rebuild_profile_tabs(tab_strip, removable_tab_ids: set[int] | None = None) -
         tab_strip.selectTabWithId(current_tab_id, 1.0)
 
 
-def ensure_valid_tab_selected(instance, tab_strip=None) -> None:
-    try:
-        if tab_strip is None:
-            tab_strip = get_private_field(instance, "scrollSlidingTextTabStrip")
-        if tab_strip is None or tab_strip.getTabsCount() == 0:
-            return
-
-        current_tab_id = tab_strip.getCurrentTabId()
-        if not tab_strip.hasTab(current_tab_id):
-            first_tab_id = tab_strip.getFirstTabId()
-            if first_tab_id != -1:
-                tab_strip.setInitialTabId(first_tab_id)
-                current_tab_id = first_tab_id
-
-        media_pages = get_private_field(instance, "mediaPages")
-        if media_pages is None or current_tab_id == -1:
-            return
-
-        changed = False
-        for page in media_pages:
-            if page is None:
-                continue
-            if page.selectedType != current_tab_id:
-                set_private_field(page, "selectedType", jint(current_tab_id))
-                try:
-                    page.selectedType = jint(current_tab_id)
-                except Exception:
-                    pass
-                changed = True
-
-        if changed:
-            instance.switchToCurrentSelectedMode(False)
-    except Exception:
-        pass
-
-
 def clear_empty_media_selection(instance, tab_strip) -> None:
-    """Clear stale media selection after both profile tabs were removed."""
     try:
         tab_strip.setInitialTabId(-1)
     except Exception:
