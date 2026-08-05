@@ -1,4 +1,4 @@
-# Contributing to LegacyGram
+# Contributing to LiteGram
 
 ## Technical Stack
 | Tool                 | Purpose                                                                    |
