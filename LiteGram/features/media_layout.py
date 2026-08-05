@@ -211,11 +211,23 @@ def ensure_valid_tab_selected(instance, tab_strip=None) -> None:
                 current_tab_id = first_tab_id
 
         media_pages = get_private_field(instance, "mediaPages")
-        if media_pages is not None and len(media_pages) > 0 and media_pages[0] is not None:
-            current_selected = media_pages[0].selectedType
-            if current_selected != current_tab_id and current_tab_id != -1:
-                set_private_field(media_pages[0], "selectedType", jint(current_tab_id))
-                instance.switchToCurrentSelectedMode(False)
+        if media_pages is None or current_tab_id == -1:
+            return
+
+        changed = False
+        for page in media_pages:
+            if page is None:
+                continue
+            if page.selectedType != current_tab_id:
+                set_private_field(page, "selectedType", jint(current_tab_id))
+                try:
+                    page.selectedType = jint(current_tab_id)
+                except Exception:
+                    pass
+                changed = True
+
+        if changed:
+            instance.switchToCurrentSelectedMode(False)
     except Exception:
         pass
 
